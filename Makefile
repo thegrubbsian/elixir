@@ -90,16 +90,14 @@ install: compile
 	done
 
 clean:
-	$(Q) cd lib/elixir && $(REBAR) clean
+	cd lib/elixir && $(REBAR) clean
 	rm -rf ebin
 	rm -rf lib/*/ebin
-	rm -rf lib/*/test/tmp
-	rm -rf lib/mix/test/fixtures/git_repo
 	rm -rf lib/*/tmp
+	rm -rf lib/mix/test/fixtures/git_repo
+	rm -rf lib/mix/test/fixtures/deps_on_git_repo
+	rm -rf lib/mix/test/fixtures/git_rebar
 	rm -rf lib/elixir/src/elixir.app.src
-	rm -rf lib/elixir/src/*_lexer.erl
-	rm -rf lib/elixir/src/*_parser.erl
-	rm -rf lib/elixir/test/ebin
 
 clean_exbeam:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
@@ -124,7 +122,7 @@ release_zip: compile
 	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md rel VERSION
 
 release_docs: docs
-	cd ../elixir-lang.github.com && git checkout master
+	cd ../elixir-lang.github.com
 	rm -rf ../elixir-lang.github.com/docs/master
 	mv docs ../elixir-lang.github.com/docs/master
 
@@ -141,7 +139,7 @@ test_erlang: compile
 	$(Q) mkdir -p lib/elixir/test/ebin
 	$(Q) $(ERLC) -pa lib/elixir/ebin -o lib/elixir/test/ebin lib/elixir/test/erlang/*.erl
 	$(Q) $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt;
-	@ echo
+	@ echo ""
 
 test_elixir: test_kernel test_ex_unit test_doc_test test_mix test_eex test_iex
 
@@ -155,12 +153,12 @@ test_kernel: compile
 
 .dialyzer.base_plt:
 	@ echo "==> Adding Erlang/OTP basic applications to a new base PLT"
-	$(Q) dialyzer --output_plt .dialyzer.base_plt --build_plt --apps erts kernel stdlib compiler syntax_tools inets crypto ssl
+	$(Q) dialyzer --output_plt .dialyzer.base_plt --build_plt --apps erts kernel stdlib compiler tools syntax_tools parsetools
 
 dialyze: .dialyzer.base_plt
 	$(Q) rm -f .dialyzer_plt
 	$(Q) cp .dialyzer.base_plt .dialyzer_plt
 	@ echo "==> Adding Elixir to PLT..."
-	$(Q) dialyzer --plt .dialyzer_plt --add_to_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/mix/ebin lib/iex/ebin lib/eex/ebin
+	$(Q) dialyzer --plt .dialyzer_plt --add_to_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/eex/ebin lib/iex/ebin lib/mix/ebin
 	@ echo "==> Dialyzing Elixir..."
-	$(Q) dialyzer --plt .dialyzer_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/mix/ebin lib/iex/ebin lib/eex/ebin
+	$(Q) dialyzer --plt .dialyzer_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/eex/ebin lib/iex/ebin lib/mix/ebin

@@ -20,13 +20,13 @@ defmodule Mix.Project do
         end
       end
 
-  After defined, the configuration for this project can be read
-  as `Mix.project/0`. Notice that config won't fail if a
-  project is not defined, this allows many of mix tasks to work
+  After being defined, the configuration for this project can be read
+  as `Mix.project/0`. Notice that `config/0` won't fail if a
+  project is not defined; this allows many mix tasks to work
   even without a project.
 
-  In case the developer needs a project or want to access a special
-  function in the project, he can access `Mix.Project.get!/0`
+  In case the developer needs a project or wants to access a special
+  function in the project, he can call `Mix.Project.get!/0`
   which fails with `Mix.NoProjectError` in case a project is not
   defined.
   """
@@ -46,17 +46,11 @@ defmodule Mix.Project do
     push env.module
   end
 
-  # Push a project into the project stack. Only
+  # Push a project onto the project stack. Only
   # the top of the stack can be accessed.
   @doc false
   def push(atom) when is_atom(atom) do
     config = Keyword.merge default_config, get_project_config(atom)
-
-    if requirement = config[:elixir] do
-      unless Mix.Version.match?(System.version, requirement) do
-        raise Mix.SystemVersionError, expected: requirement, actual: System.version
-      end
-    end
 
     Mix.Server.cast({ :push_project, atom, config })
   end
@@ -74,23 +68,13 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Refresh the project configuration. Usually required
-  when the environment changes during a task.
-  """
-  def refresh do
-    push pop
-  end
+  Retrieves the current project, `nil` if there is no
+  current project (i.e. there is no mixfile in the current
+  project).
 
-  @doc """
-  Retrieves the current project.
-
-  This is usually called by tasks that needs additional
-  functions on the project to be defined. Since such
-  tasks usually depends on a project to be defined, this
-  function raises `Mix.NoProjectError` in case no project
-  is available.
-
-  Returns nil if no project.
+  If you expect a project to be defined, i.e. it is a
+  requirement of the current task, you should call
+  `get!/0` instead.
   """
   def get do
     case Mix.Server.call(:projects) do
@@ -100,15 +84,20 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Same as `get/0` but raises an exception if no project.
+  Same as `get/0`, but raises an exception if there is no current project.
+
+  This is usually called by tasks that need additional
+  functions on the project to be defined. Since such
+  tasks usually depend on a project being defined, this
+  function raises `Mix.NoProjectError` in case no project
+  is available.
   """
   def get! do
     get || raise Mix.NoProjectError
   end
 
   @doc """
-  Returns the project configuration already
-  considering the current environment.
+  Returns the project configuration for the current environment.
   """
   def config do
     case Mix.Server.call(:projects) do
@@ -118,7 +107,10 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns a list of project config files (mix.exs and mix.lock).
+  Returns a list of project configuration files, for example,
+  `mix.exs` and `mix.lock`. This function is usually used
+  in compilation tasks to trigger a full recompilation
+  whenever such configuration files change.
   """
   def config_files do
     opts     = []
@@ -129,25 +121,18 @@ defmodule Mix.Project do
       opts = [lockfile|opts]
     end
 
-    if project do
-      opts = [Mix.Utils.source(project)|opts]
+    if project && (source = project.__info__(:compile)[:source]) do
+      opts = [:unicode.characters_to_binary(source)|opts]
     end
 
     opts
   end
 
   @doc """
-  Returns true if project is an umbrella project.
+  Returns `true` if project is an umbrella project.
   """
   def umbrella? do
     config[:apps_path] != nil
-  end
-
-  @doc """
-  Returns the path to the apps directory.
-  """
-  def apps_path do
-    Path.expand(config[:apps_path])
   end
 
   @doc """
@@ -185,7 +170,7 @@ defmodule Mix.Project do
   @doc """
   Runs the given `fun` inside the given project by changing
   the current working directory and loading the given project
-  into the project stack.
+  onto the project stack.
   """
   def in_project(app, app_path, post_config // [], fun)
 
@@ -206,14 +191,16 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns the paths this project compiles to.
+  Returns the paths this project compiles to,
+  collecting all `:compile_path` in case of umbrella apps.
   """
   def compile_paths do
     recur(fn _ -> Path.expand config[:compile_path] end)
   end
 
   @doc """
-  Returns all load paths for this project.
+  Returns all load paths for this project,
+  collecting all `:load_paths` in case of umbrella apps.
   """
   def load_paths do
     paths =
@@ -283,17 +270,18 @@ defmodule Mix.Project do
 
   defp default_config do
     [ compile_path: "ebin",
-      default_env: [test: :test],
       default_task: "run",
+      deps: [],
       deps_path: "deps",
       elixirc_exts: [:ex],
       elixirc_paths: ["lib"],
       elixirc_watch_exts: [:ex, :eex, :exs],
-      load_paths: [],
-      lockfile: "mix.lock",
       erlc_paths: ["src"],
       erlc_include_path: "include",
-      erlc_options: [:debug_info] ]
+      erlc_options: [:debug_info],
+      load_paths: [],
+      lockfile: "mix.lock",
+      preferred_cli_env: [{ "test", :test }] ]
   end
 
   defp get_project_config(nil), do: []

@@ -4,32 +4,45 @@ defmodule Mix.Tasks.Compile.YeccTest do
   use MixTest.Case
   import ExUnit.CaptureIO
 
-  test "tries to compile src/test_fail.yrl" do
+  test "compilation continues if one file fails to compile" do
     in_fixture "compile_yecc", fn ->
-      File.write!("src/test_fail.yrl", """)
+      File.write!("src/zzz.yrl", """)
       oops.
       """
 
-      output = capture_io fn ->
-        Mix.Tasks.Compile.Yecc.run []
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Yecc.run ["--force"]
+        end
       end
 
-      assert output =~ "src/test_fail.yrl:1: syntax error before:"
+      assert File.regular?("src/test_ok.erl")
     end
   end
 
   test "compiles src/test_ok.yrl" do
     in_fixture "compile_yecc", fn ->
-      Mix.Tasks.Compile.Yecc.run []
+      assert Mix.Tasks.Compile.Yecc.run([]) == :ok
 
       assert_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
       assert File.regular?("src/test_ok.erl")
 
-      Mix.Tasks.Compile.Yecc.run []
+      assert Mix.Tasks.Compile.Yecc.run([]) == :noop
       refute_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
 
-      Mix.Tasks.Compile.Yecc.run ["--force"]
+      assert Mix.Tasks.Compile.Yecc.run(["--force"]) == :ok
       assert_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
+    end
+  end
+
+  test "removes old artifact files" do
+    in_fixture "compile_yecc", fn ->
+      assert Mix.Tasks.Compile.Yecc.run([]) == :ok
+      assert File.regular?("src/test_ok.erl")
+
+      File.rm!("src/test_ok.yrl")
+      assert Mix.Tasks.Compile.Yecc.run([]) == :ok
+      refute File.regular?("src/test_ok.erl")
     end
   end
 end

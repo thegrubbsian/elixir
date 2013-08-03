@@ -178,6 +178,8 @@ defmodule Record do
   A protocol can be implemented for any record defined via `defrecord`.
   """
 
+  @type t :: tuple
+
   @doc """
   Extract record information from an Erlang file and
   return the fields as a list of tuples.
@@ -297,7 +299,6 @@ defmodule Record do
     contents = [
       reflection(escaped),
       initializer(escaped),
-      indexes(escaped),
       conversions(values),
       record_optimizable(),
       updater(values),
@@ -637,46 +638,6 @@ defmodule Record do
       @doc false
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
       def new(opts) when is_list(opts), do: { __MODULE__, unquote_splicing(selective) }
-      def new(tuple) when is_tuple(tuple), do: :erlang.setelement(1, tuple, __MODULE__)
-    end
-  end
-
-  # Define method to get index of a given key.
-  #
-  # Useful if you need to know position of the key for such applications as:
-  #  - ets
-  #  - mnesia
-  #
-  # For a declaration like:
-  #
-  #     defrecord FileInfo, atime: nil, mtime: nil
-  #
-  # It will define following method:
-  #
-  #     def __index__(:atime), do: 2
-  #     def __index__(:mtime), do: 3
-  #     def __index__(_), do: nil
-  #
-  defp indexes(values) do
-    quoted = lc { k, _ } inlist values do
-      index = find_index(values, k, 0)
-      quote do
-        @doc false
-        def __index__(unquote(k)) do
-          IO.write "[WARNING] #{__MODULE__}.__index__/1 is deprecated, " <>
-                   "please use #{__MODULE__}.__record__(:index, key) instead\n#{Exception.format_stacktrace}"
-          unquote(index + 1)
-        end
-      end
-    end
-    quote do
-      unquote(quoted)
-
-      @doc false
-      def __index__(_), do: nil
-
-      @doc false
-      def __index__(key, _), do: __index__(key)
     end
   end
 
@@ -818,7 +779,7 @@ defmodule Record do
       end
 
       @spec new :: t
-      @spec new(options | tuple) :: t
+      @spec new(options) :: t
       @spec to_keywords(t) :: options
       @spec update(options, t) :: t
       @spec __record__(:name) :: atom

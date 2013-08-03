@@ -75,7 +75,7 @@ parse_error(Meta, File, Error, Token) ->
 
 %% Raised during compilation
 
--spec form_error(non_neg_integer(), file:filename(), module(), any()) -> no_return().
+-spec form_error(non_neg_integer() | list(), file:filename(), module(), any()) -> no_return().
 
 form_error(Meta, File, Module, Desc) ->
   Message = iolist_to_binary(format_error(Module, Desc)),
@@ -103,11 +103,30 @@ handle_file_warning(_, _File, { _Line, v3_kernel, bad_call }) -> [];
 %% We handle unused local warnings ourselves
 handle_file_warning(_, _File, { _Line, erl_lint, { unused_function, _ } }) -> [];
 
-%% Rewrite
+%% Make no_effect clauses pretty
+handle_file_warning(_, File, { Line, sys_core_fold, { no_effect, { erlang, F, A } } }) ->
+  { Fmt, Args } = case erl_internal:comp_op(F, A) of
+    true -> { "use of operator ~ts has no effect", [translate_comp_op(F)] };
+    false ->
+      case erl_internal:bif(F, A) of
+        false -> { "the call to :erlang.~ts/~B has no effect", [F,A] };
+        true -> { "the call to ~ts/~B has no effect", [F,A] }
+      end
+  end,
+  Message = io_lib:format(Fmt, Args),
+  warn(file_format(Line, File, Message));
+
+%% Rewrite undefined behaviour to check for protocols
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
+  { DefKind, Def, DefArity } =
+    case atom_to_list(Fun) of
+      "MACRO-" ++ Rest -> { macro, list_to_atom(Rest), Arity - 1 };
+      _ -> { function, Fun, Arity }
+    end,
+
   Kind    = protocol_or_behaviour(Module),
-  Raw     = "undefined ~ts function ~ts/~B (for ~ts ~ts)",
-  Message = io_lib:format(Raw, [Kind, Fun, Arity, Kind, inspect(Module)]),
+  Raw     = "undefined ~ts ~ts ~ts/~B (for ~ts ~ts)",
+  Message = io_lib:format(Raw, [Kind, DefKind, Def, DefArity, Kind, inspect(Module)]),
   warn(file_format(Line, File, Message));
 
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
@@ -118,15 +137,17 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
       warn(file_format(Line, File, Message))
   end;
 
+%% Ignore unused vars at "weird" lines (<= 0)
 handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 ->
   [];
 
+%% Ignore shadowed vars as we guarantee no conflicts ourselves
+handle_file_warning(_, _File, {_Line,erl_lint,{shadowed_var,_Var,_Where}}) ->
+  [];
+
+%% Properly format other unused vars
 handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
   Message = format_error(erl_lint, { unused_var, format_var(Var) }),
-  warn(file_format(Line, File, Message));
-
-handle_file_warning(_, File, {Line,erl_lint,{shadowed_var,Var,Where}}) ->
-  Message = format_error(erl_lint, { shadowed_var, format_var(Var), Where }),
   warn(file_format(Line, File, Message));
 
 %% Default behavior
@@ -177,9 +198,15 @@ raise(none, File, Kind, Message) ->
   raise(0, File, Kind, Message);
 
 raise(Line, File, Kind, Message) when is_integer(Line) ->
+  %% Populate the stacktrace so we can raise it
+  try
+    throw(ok)
+  catch
+    ok -> ok
+  end,
   Stacktrace = erlang:get_stacktrace(),
   Exception = Kind:new([{description, Message}, {file, iolist_to_binary(File)}, {line, Line}]),
-  erlang:raise(error, Exception, Stacktrace).
+  erlang:raise(error, Exception, tl(Stacktrace)).
 
 file_format(0, File, Message) ->
   io_lib:format("~ts: ~ts~n", [File, Message]);
@@ -212,3 +239,9 @@ is_protocol(Module) ->
     { error, _ } ->
       false
   end.
+
+translate_comp_op('/=') -> '!=';
+translate_comp_op('=<') -> '<=';
+translate_comp_op('=:=') -> '===';
+translate_comp_op('=/=') -> '!==';
+translate_comp_op(Other) -> Other.

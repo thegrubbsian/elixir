@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Do do
   use Mix.Task
 
-  @shortdoc "Executes the commands separated by comma"
+  @shortdoc "Executes the tasks separated by comma"
 
   @moduledoc """
-  Executes the commands separated by comma.
+  Executes the tasks separated by comma.
 
   ## Examples
 
@@ -15,10 +15,10 @@ defmodule Mix.Tasks.Do do
 
   """
   def run(args) do
-    Enum.each(gather_commands(args), function do
+    Enum.each gather_commands(args), fn
       [task|args] -> Mix.Task.run task, args
-      [] -> raise Mix.Error, message: "no expression between commas"
-    end)
+      [] -> raise Mix.Error, message: "No expression between commas"
+    end
   end
 
   defp gather_commands(args) do

@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Local.Install do
       path = Mix.Archive.name(Mix.project[:app], Mix.project[:version])
 
       unless File.exists?(path) do
-        raise Mix.Error, message: "expected PATH to be given, please use `mix local.install PATH`"
+        raise Mix.Error, message: "Expected PATH to be given, please use `mix local.install PATH`"
       end
     end
 
@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Local.Install do
     if should_install?(src, opts[:force]) do
       dest = Mix.Local.archives_path
       File.mkdir_p! dest
-      create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path(src)
+      create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path!(src)
     end
   end
 

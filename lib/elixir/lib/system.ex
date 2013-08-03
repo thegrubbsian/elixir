@@ -79,7 +79,16 @@ defmodule System do
   end
 
   @doc """
-  Returns the current working directory or nil if one
+  Changes the list of command-line arguments. Use it with caution,
+  as it destory any previous argv information.
+  """
+  @spec argv([String.t]) :: :ok
+  def argv(argv) do
+    :elixir_code_server.cast({ :argv, argv })
+  end
+
+  @doc """
+  Returns the current working directory or `nil` if one
   is not available.
   """
   def cwd do
@@ -98,15 +107,18 @@ defmodule System do
 
   @doc """
   Returns the user home (platform independent).
-  It returns nil if no user home is set.
+  It returns `nil` if no user home is set.
   """
   def user_home do
-    get_unix_home || get_windows_home
+    case :os.type() do
+      { :win32, _ } -> get_windows_home
+      _             -> get_unix_home
+    end
   end
 
   @doc """
-  Same as `user_home` but raises `System.NoHomeError`
-  instead of returning nil if no user home is set.
+  Same as `user_home/0` but raises `System.NoHomeError`
+  instead of returning `nil` if no user home is set.
   """
   def user_home! do
     user_home || raise NoHomeError
@@ -117,10 +129,12 @@ defmodule System do
   end
 
   defp get_windows_home do
-    get_env("USERPROFILE") || (
-      hd = get_env("HOMEDRIVE")
-      hp = get_env("HOMEPATH")
-      hd && hp && hd <> hp
+    :filename.absname(
+      get_env("USERPROFILE") || (
+        hd = get_env("HOMEDRIVE")
+        hp = get_env("HOMEPATH")
+        hd && hp && hd <> hp
+      )
     )
   end
 
@@ -134,7 +148,7 @@ defmodule System do
   4. `C:\TMP` on Windows or `/tmp` on Unix
   5.  As a last resort, the current working directory
 
-  Returns nil if none of the above are writable.
+  Returns `nil` if none of the above are writable.
   """
   def tmp_dir do
     write_env_tmp_dir('TMPDIR') ||
@@ -146,16 +160,16 @@ defmodule System do
 
   @doc """
   Same as `tmp_dir` but raises `System.NoTmpDirError`
-  instead of returning nil if no temp dir is set.
+  instead of returning `nil` if no temp dir is set.
   """
   def tmp_dir! do
     tmp_dir || raise NoTmpDirError
   end
 
   defp write_env_tmp_dir(env) do
-    case get_env(env) do
-      nil -> nil
-      tmp -> write_tmp_dir tmp
+    case :os.getenv(env) do
+      false -> nil
+      tmp   -> write_tmp_dir(tmp)
     end
   end
 
@@ -166,7 +180,7 @@ defmodule System do
         access_index = File.Stat.__record__(:index, :access)
         case { elem(info, type_index), elem(info, access_index) } do
           { :directory, access } when access in [:read_write, :write] ->
-            dir
+            :unicode.characters_to_binary(dir)
           _ -> nil
         end
       { :error, _ } -> nil
@@ -193,14 +207,17 @@ defmodule System do
   If `command` is a char list, a char list is returned.
   Returns a binary otherwise.
   """
+  @spec cmd(binary) :: binary
   @spec cmd(char_list) :: char_list
-  @spec cmd(String.t) :: String.t
+
   def cmd(command) when is_list(command) do
     :os.cmd(command)
   end
 
-  def cmd(command) do
-    list_to_binary :os.cmd(to_char_list(command))
+  def cmd(command) when is_binary(command) do
+    # Notice we don't use unicode for conversion
+    # because the OS is expecting and returning raw bytes
+    list_to_binary :os.cmd(binary_to_list(command))
   end
 
   @doc """
@@ -213,14 +230,17 @@ defmodule System do
   If `program` is a char list, a char list is returned.
   Returns a binary otherwise.
   """
+  @spec find_executable(binary) :: binary | nil
   @spec find_executable(char_list) :: char_list | nil
-  @spec find_executable(String.t) :: String.t | nil
+
   def find_executable(program) when is_list(program) do
     :os.find_executable(program) || nil
   end
 
-  def find_executable(program) do
-    case :os.find_executable(to_char_list(program)) do
+  def find_executable(program) when is_binary(program) do
+    # Notice we don't use unicode for conversion
+    # because the OS is expecting and returning raw bytes
+    case :os.find_executable(binary_to_list(program)) do
       false -> nil
       other -> list_to_binary(other)
     end
@@ -231,19 +251,19 @@ defmodule System do
   given as a single string of the format "VarName=Value", where VarName is the
   name of the variable and Value its value.
   """
-  @spec get_env() :: [{String.t, String.t}]
+  @spec get_env() :: [{binary, binary}]
   def get_env do
-    Enum.map :os.getenv, :unicode.characters_to_binary &1
+    Enum.map :os.getenv, :unicode.characters_to_binary(&1)
   end
 
   @doc """
   Returns the value of the environment variable
-  `varname` as a binary, or nil if the environment
+  `varname` as a binary, or `nil` if the environment
   variable is undefined.
   """
-  @spec get_env(String.t) :: String.t | nil
-  def get_env(varname) do
-    case :os.getenv(to_char_list(varname)) do
+  @spec get_env(binary) :: binary | nil
+  def get_env(varname) when is_binary(varname) do
+    case :os.getenv(:unicode.characters_to_list(varname)) do
       false -> nil
       other -> :unicode.characters_to_binary(other)
     end
@@ -255,15 +275,15 @@ defmodule System do
 
   See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
   """
-  @spec get_pid() :: String.t
+  @spec get_pid() :: binary
   def get_pid, do: list_to_binary(:os.getpid)
 
   @doc """
   Sets a new `value` for the environment variable `varname`.
   """
-  @spec put_env(String.t, String.t | char_list) :: :ok
-  def put_env(varname, value) when is_binary(value) or is_list(value) do
-   :os.putenv to_char_list(varname), :unicode.characters_to_list(value)
+  @spec put_env(binary, binary) :: :ok
+  def put_env(varname, value) when is_binary(varname) and is_binary(value) do
+   :os.putenv binary_to_list(varname), :unicode.characters_to_list(value)
    :ok
   end
 
@@ -304,30 +324,25 @@ defmodule System do
   Note that on many platforms, only the status codes 0-255 are supported
   by the operating system.
 
-  For integer status, Erlang runtime system closes all ports and allows async
-  threads to finish their operations before exiting. To exit without such
-  flushing, pass options [flush: false] instead.
-
-  For more information, check: http://www.erlang.org/doc/man/erlang.html#halt-2
+  For more information, check: http://www.erlang.org/doc/man/erlang.html#halt-1
 
   ## Examples
 
       System.halt(0)
-      System.halt(1, flush: false)
+      System.halt(1)
       System.halt(:abort)
 
   """
   @spec halt() :: no_return
-  @spec halt(non_neg_integer | List.Chars.t | :abort) :: no_return
-  @spec halt(non_neg_integer | List.Chars.t | :abort, [] | [flush: false]) :: no_return
-  def halt(status // 0, options // [])
+  @spec halt(non_neg_integer | binary | :abort) :: no_return
+  def halt(status // 0)
 
-  def halt(status, options) when is_integer(status) or status == :abort do
-    :erlang.halt(status, options)
+  def halt(status) when is_integer(status) or status == :abort do
+    :erlang.halt(status)
   end
 
-  def halt(status, options) do
-    :erlang.halt(to_char_list(status), options)
+  def halt(status) when is_binary(status) do
+    :erlang.halt(binary_to_list(status))
   end
 
   ## Helpers

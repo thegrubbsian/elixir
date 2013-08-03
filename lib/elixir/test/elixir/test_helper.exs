@@ -6,7 +6,7 @@ defmodule PathHelpers do
   end
 
   def tmp_path() do
-    Path.expand("../../tmp", __FILE__)
+    Path.expand("../../../tmp", __FILE__)
   end
 
   def fixture_path(extra) do
@@ -42,9 +42,11 @@ defmodule PathHelpers do
   end
   
   if match? { :win32, _ }, :os.type do
+    def is_win?, do: true
     def executable_extension, do: ".bat"
     def redirect_std_err_on_win, do: " 2>&1"
   else
+    def is_win?, do: false
     def executable_extension, do: ""
     def redirect_std_err_on_win, do: ""
   end

@@ -11,21 +11,25 @@ defmodule IEx.Helpers do
 
   There are many other helpers available:
 
-  * `c/2` - compiles a file at the given path
-  * `ls/0` - list the contents of the current directory
-  * `ls/1` - list the contents of the specified directory
-  * `cd/1` - changes the current directory
-  * `flush/0` — flush all messages sent to the shell
-  * `h/0`, `h/1` - prints help/documentation
-  * `l/1` - loads the given module's beam code and purges the current version
-  * `m/0` - prints loaded modules
-  * `pwd/0` - prints the current working directory
-  * `r/0`, `r/1` - recompiles and reloads the given module's source file
-  * `s/1` — prints spec information
-  * `t/1` — prints type information
-  * `v/0` - prints the history of commands evaluated in the session
-  * `v/1` - retrieves the nth value from the history
-  * `import_file/1` - evaluate the given file in the shell's context
+  * `c/2`     — compiles a file at the given path
+  * `cd/1`    — changes the current directory
+  * `clear/0` — clears the screen
+  * `flush/0` — flushes all messages sent to the shell
+  * `h/0`     — prints this help
+  * `h/1`     — prints help for the given module, function or macro
+  * `l/1`     — loads the given module's beam code and purges the current version
+  * `ls/0`    — lists the contents of the current directory
+  * `ls/1`    — lists the contents of the specified directory
+  * `m/0`     — prints loaded modules
+  * `pwd/0`   — prints the current working directory
+  * `r/0`     — recompile and reload all modules that were previously reloaded
+  *  r/1`     — recompiles and reloads the given module's source file
+  * `s/1`     — prints spec information
+  * `t/1`     — prints type information
+  * `v/0`     — prints the history of commands evaluated in the session
+  * `v/1`     — retrieves the nth value from the history
+  * `import_file/1`
+              — evaluates the given file in the shell's context
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -40,6 +44,8 @@ defmodule IEx.Helpers do
 
   To learn more about IEx as a whole, just type `h(IEx)`.
   """
+
+  import IEx, only: [dont_display_result: 0]
 
   @doc """
   Expects a list of files to compile and a path
@@ -62,6 +68,14 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Clear the console screen.
+  """
+  def clear do
+    IO.write [ IO.ANSI.home, IO.ANSI.clear ]
+    dont_display_result
+  end
+
+  @doc """
   Prints the list of all loaded modules with paths to their corresponding .beam
   files.
   """
@@ -74,6 +88,7 @@ defmodule IEx.Helpers do
     Enum.each sorted, fn({ mod, file }) ->
       :io.format(format, [mod, file])
     end
+    dont_display_result
   end
 
   @doc """
@@ -81,6 +96,7 @@ defmodule IEx.Helpers do
   """
   def h() do
     IEx.Introspection.h(IEx.Helpers)
+    dont_display_result
   end
 
   @doc """
@@ -396,7 +412,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Evaluates the contents of file at `path` as if it were directly typed into
+  Evaluates the contents of the file at `path` as if it were directly typed into
   the shell. `path` has to be a literal binary.
 
   A leading `~` in `path` is automatically expanded.

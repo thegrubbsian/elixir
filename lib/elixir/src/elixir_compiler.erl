@@ -94,7 +94,7 @@ module(Forms, File, Callback) ->
 module(Forms, File, RawOptions, Bootstrap, Callback) when
     is_binary(File), is_list(Forms), is_list(RawOptions), is_boolean(Bootstrap), is_function(Callback) ->
   { Options, SkipNative } = compile_opts(Forms, RawOptions),
-  Listname = binary_to_list(File),
+  Listname = unicode:characters_to_list(File),
 
   case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
     {ok, ModuleName, Binary, RawWarnings} ->
@@ -167,12 +167,21 @@ module_form(Fun, Exprs, Line, File, Module, Vars) when
 
   Args = [{ var, Line, '_@MODULE'}, Cons],
 
+  Relative =
+    case get_opt(internal) of
+      true  -> File;
+      false -> 'Elixir.Path':relative_to(File, 'Elixir.System':'cwd!'())
+    end,
+
   [
-    { attribute, Line, file, { binary_to_list(File), 1 } },
+    { attribute, Line, file, { unicode:characters_to_list(File), 1 } },
     { attribute, Line, module, Module },
-    { attribute, Line, export, [{ Fun, 2 }] },
+    { attribute, Line, export, [{ Fun, 2 }, { '__RELATIVE__', 0 }] },
     { function, Line, Fun, length(Args), [
       { clause, Line, Args, [], Exprs }
+    ] },
+    { function, Line, '__RELATIVE__', 0, [
+      { clause, Line, [], [], [elixir_tree_helpers:elixir_to_erl(Relative)] }
     ] }
   ].
 

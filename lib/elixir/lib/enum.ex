@@ -10,7 +10,7 @@ defprotocol Enumerable do
 
       Enum.map([1, 2, 3], &1 * 2)
 
-  `Enum.map` invokes `Enumerable.reduce` to perform the reducing operation
+  `Enum.map/2` invokes `Enumerable.reduce/3` to perform the reducing operation
   that builds a mapped list by calling the mapping function `&1 * 2` on every
   element in the collection and cons'ing the element with the accumulated list.
   """
@@ -27,7 +27,7 @@ defprotocol Enumerable do
       def reduce([h|t], acc, fun), do: reduce(t, fun.(h, acc), fun)
       def reduce([], acc, _fun),   do: acc
 
-  As an additional example, here is the implementation of `Enum.map` with
+  As an additional example, here is the implementation of `Enum.map/2` with
   `Enumerable`:
 
       def map(collection, fun) do
@@ -39,12 +39,12 @@ defprotocol Enumerable do
   def reduce(collection, acc, fun)
 
   @doc """
-  The function used to check if a value exists within the collection.
+  The function is used to check if a value exists within the collection.
   """
   def member?(collection, value)
 
   @doc """
-  The function used to retrieve the collection's size.
+  The function is used to retrieve the collection's size.
   """
   def count(collection)
 end
@@ -56,7 +56,7 @@ defmodule Enum do
   Provides a set of algorithms that enumerate over collections according to the
   `Enumerable` protocol. Most of the functions in this module have two
   flavours. If a given collection implements the mentioned protocol (like
-  list, for instance), you can do:
+  `List`, for instance), you can do:
 
       Enum.map([1, 2, 3], fn(x) -> x * 2 end)
 
@@ -73,7 +73,7 @@ defmodule Enum do
   @type default :: any
 
   @doc """
-  Checks if the `value` exists within the `collection`.
+  Checks if `value` exists within the `collection`.
 
   ## Examples
 
@@ -89,7 +89,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the collection size.
+  Returns the collection's size.
 
   ## Examples
 
@@ -103,7 +103,8 @@ defmodule Enum do
   end
 
   @doc """
-  Counts for how many items the function returns true.
+  Returns the count of items in the collection for which
+  `fun` returns `true`.
 
   ## Examples
       iex> Enum.count([1, 2, 3, 4, 5], fn(x) -> rem(x, 2) == 0 end)
@@ -118,9 +119,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection` and returns true if
-  each invocation returns true as well, otherwise it short-circuits and returns
-  false.
+  Invokes the given `fun` for each item in the `collection` and returns `false`
+  if at least one invocation returns `false`. Otherwise returns `true`.
 
   ## Examples
 
@@ -131,7 +131,7 @@ defmodule Enum do
       false
 
   If no function is given, it defaults to checking if
-  all items in the collection evaluate to true.
+  all items in the collection evaluate to `true`.
 
       iex> Enum.all?([1, 2, 3])
       true
@@ -157,8 +157,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection` and returns true if
-  at least one invocation returns true. Returns false otherwise.
+  Invokes the given `fun` for each item in the `collection` and returns `true` if
+  at least one invocation returns `true`. Returns `false` otherwise.
 
   ## Examples
 
@@ -169,7 +169,7 @@ defmodule Enum do
       true
 
   If no function is given, it defaults to checking if
-  at least one item in the collection evaluates to true.
+  at least one item in the collection evaluates to `true`.
 
       iex> Enum.any?([false, false, false])
       false
@@ -196,8 +196,7 @@ defmodule Enum do
 
   @doc """
   Finds the element at the given index (zero-based).
-  Raises out of bounds error in case the given position
-  is outside the range of the collection.
+  Returns `default` if index is out of bounds.
 
   Expects an ordered collection.
 
@@ -223,7 +222,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops the first `count` items from the collection.
+  Drops the first `count` items from `collection`.
   Expects an ordered collection.
 
   ## Examples
@@ -255,7 +254,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops items at the beginning of `collection` while `fun` returns true.
+  Drops items at the beginning of `collection` while `fun` returns `true`.
   Expects an ordered collection.
 
   ## Examples
@@ -287,42 +286,22 @@ defmodule Enum do
       #=> :ok
 
   """
-  @spec each(t, (element -> any) | (element, index -> any)) :: :ok
+  @spec each(t, (element -> any)) :: :ok
   def each(collection, fun) when is_list(collection) do
-    cond do
-      is_function(fun, 1) -> :lists.foreach(fun, collection)
-      is_function(fun, 2) ->
-        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.each/2 is deprecated, " <>
-                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
-        :lists.foldl(fn(h, idx) -> fun.(h, idx); idx + 1 end, 0, collection)
-    end
-
+    :lists.foreach(fun, collection)
     :ok
   end
 
   def each(collection, fun) do
-    cond do
-      is_function(fun, 1) ->
-        Enumerable.reduce(collection, nil, fn(entry, _) ->
-          fun.(entry)
-          nil
-        end)
-
-      is_function(fun, 2) ->
-        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.each/2 is deprecated, " <>
-                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
-
-        Enumerable.reduce(collection, 0, fn(entry, idx) ->
-          fun.(entry, idx)
-          idx + 1
-        end)
-    end
-
+    Enumerable.reduce(collection, nil, fn(entry, _) ->
+      fun.(entry)
+      nil
+    end)
     :ok
   end
 
   @doc """
-  Returns true if the collection is empty, otherwise false.
+  Returns `true` if the collection is empty, otherwise `false`.
 
   ## Examples
 
@@ -405,7 +384,7 @@ defmodule Enum do
 
   @doc """
   Filters the collection, i.e. returns only those elements
-  for which `fun` returns true.
+  for which `fun` returns `true`.
 
   ## Examples
 
@@ -478,7 +457,7 @@ defmodule Enum do
   end
 
   @doc """
-  Similar to find, but returns the value of the function
+  Similar to `find/3`, but returns the value of the function
   invocation instead of the element itself.
 
   ## Examples
@@ -509,8 +488,8 @@ defmodule Enum do
   end
 
   @doc """
-  Similar to find, but returns the index (count starts with 0)
-  of the item instead of the element itself.
+  Similar to `find/3`, but returns the index (zero-based)
+  of the element instead of the element itself.
 
   Expects an ordered collection.
 
@@ -538,7 +517,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the first item in the collection or nil otherwise.
+  Returns the first item in the collection or `nil` otherwise.
 
   ## Examples
 
@@ -562,13 +541,13 @@ defmodule Enum do
 
   @doc """
   Joins the given `collection` according to `joiner`.
-  Joiner can be either a binary or a list and the
-  result will be of the same type as joiner. If
-  joiner is not passed at all, it defaults to an
+  `joiner` can be either a binary or a list and the
+  result will be of the same type as `joiner`. If
+  `joiner` is not passed at all, it defaults to an
   empty binary.
 
   All items in the collection must be convertible
-  to binary, otherwise an error is raised.
+  to a binary, otherwise an error is raised.
 
   ## Examples
 
@@ -610,18 +589,9 @@ defmodule Enum do
       [a: -1, b: -2]
 
   """
-  @spec map(t, (element -> any) | (element, index -> any)) :: list
+  @spec map(t, (element -> any)) :: list
   def map(collection, fun) when is_list(collection) do
-    cond do
-      is_function(fun, 1) ->
-        lc item inlist collection, do: fun.(item)
-      is_function(fun, 2) ->
-        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.map/2 is deprecated, " <>
-                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
-        mapper = fn(h, idx) -> { fun.(h, idx), idx + 1 } end
-        { list, _ } = :lists.mapfoldl(mapper, 0, collection)
-        list
-    end
+    lc item inlist collection, do: fun.(item)
   end
 
   def map(collection, fun) do
@@ -632,13 +602,13 @@ defmodule Enum do
 
   @doc """
   Maps and joins the given `collection` in one pass.
-  Joiner can be either a binary or a list and the
-  result will be of the same type as joiner. If
-  joiner is not passed at all, it defaults to an
+  `joiner` can be either a binary or a list and the
+  result will be of the same type as `joiner`. If
+  `joiner` is not passed at all, it defaults to an
   empty binary.
 
   All items in the collection must be convertible
-  to binary, otherwise an error is raised.
+  to a binary, otherwise an error is raised.
 
   ## Examples
 
@@ -660,9 +630,16 @@ defmodule Enum do
 
   def map_join(collection, joiner, mapper) when is_binary(joiner) do
     Enumerable.reduce(collection, "", fn
-      entry, ""  -> to_binary(mapper.(entry))
-      entry, acc -> acc <> joiner <> to_binary(mapper.(entry))
+      entry, ""  -> to_binary(mapper, entry)
+      entry, acc -> acc <> joiner <> to_binary(mapper, entry)
     end)
+  end
+
+  defp to_binary(mapper, entry) do
+    case mapper.(entry) do
+      x when is_binary(x) -> x
+      o -> Binary.Chars.to_binary(o)
+    end
   end
 
   @doc """
@@ -671,8 +648,8 @@ defmodule Enum do
   the first element is the mapped collection and the second
   one is the final accumulator.
 
-  For dicts, the first tuple element has to be a { key, value }
-  tuple itself.
+  For dicts, the first tuple element must be a `{ key, value }`
+  tuple.
 
   ## Examples
 
@@ -690,9 +667,9 @@ defmodule Enum do
   end
 
   @doc """
-  Partitions `collection` into two where the first one contains elements
+  Partitions `collection` into two collections, where the first one contains elements
   for which `fun` returns a truthy value, and the second one -- for which `fun`
-  returns false or nil.
+  returns `false` or `nil`.
 
   ## Examples
 
@@ -730,7 +707,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns elements of collection for which `fun` returns false.
+  Returns elements of collection for which `fun` returns `false`.
 
   ## Examples
 
@@ -767,6 +744,25 @@ defmodule Enum do
     Enumerable.reduce(collection, [], fn(entry, acc) ->
       [entry|acc]
     end)
+  end
+
+  @doc """
+  Returns a list of collection elements shuffled.
+
+  ## Examples
+
+      iex(1)> Enum.shuffle([1, 2, 3])
+      [3, 2, 1]
+      iex(2)> Enum.shuffle([1, 2, 3])
+      [3, 1, 2]
+
+  """
+  @spec shuffle(t) :: list
+  def shuffle(collection) do
+    randomized = Enumerable.reduce(collection, [], fn x, acc ->
+      [{ :random.uniform, x }|acc]
+    end)
+    unwrap(:lists.keysort(1, randomized), [])
   end
 
   @doc """
@@ -815,8 +811,8 @@ defmodule Enum do
   collection.
 
   Be aware that a negative `count` implies the collection
-  will be iterate twice. One to calculate the position and
-  another one to do the actual splitting.
+  will be iterated twice. Once to calculate the position and
+  a second time to do the actual splitting.
 
   ## Examples
 
@@ -856,7 +852,7 @@ defmodule Enum do
   end
 
   @doc """
-  Splits `collection` in two while `fun` returns true.
+  Splits `collection` in two while `fun` returns `true`.
 
   ## Examples
 
@@ -922,7 +918,7 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the items at the beginning of `collection` while `fun` returns true.
+  Takes the items at the beginning of `collection` while `fun` returns `true`.
   Expects an ordered collection.
 
   ## Examples
@@ -1005,7 +1001,7 @@ defmodule Enum do
   Zips corresponding elements from two collections into one list
   of tuples. The number of elements in the resulting list is
   dictated by the first enum. In case the second list is shorter,
-  values are filled with nil.
+  values are filled with `nil`.
 
   ## Examples
 
@@ -1036,7 +1032,7 @@ defmodule Enum do
 
   @doc """
   Returns the maximum value.
-  Raises empty error in case the collection is empty.
+  Raises `EmptyError` if the collection is empty.
 
   ## Examples
 
@@ -1070,25 +1066,8 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the collection with each element wrapped in a tuple
-  along side its index.
-
-  ## Examples
-
-      iex> Enum.with_index [1,2,3]
-      [{1,0},{2,1},{3,2}]
-
-  """
-  @spec with_index(t) :: list({ element, non_neg_integer })
-  def with_index(collection) do
-    map_reduce(collection, 0, fn x, acc ->
-      { { x, acc }, acc + 1 }
-    end) |> elem(0)
-  end
-
-  @doc """
   Returns the maximum value.
-  Raises empty error in case the collection is empty.
+  Raises `EmptyError` if the collection is empty.
 
   ## Examples
 
@@ -1127,7 +1106,7 @@ defmodule Enum do
 
   @doc """
   Returns the minimum value.
-  Raises empty error in case the collection is empty.
+  Raises `EmptyError` if the collection is empty.
 
   ## Examples
 
@@ -1167,7 +1146,7 @@ defmodule Enum do
 
   @doc """
   Returns the minimum value.
-  Raises empty error in case the collection is empty.
+  Raises `EmptyError` if the collection is empty.
 
   ## Examples
 
@@ -1202,6 +1181,23 @@ defmodule Enum do
       :first                -> raise Enum.EmptyError
       { :reduce, entry, _ } -> entry
     end
+  end
+
+  @doc """
+  Returns the collection with each element wrapped in a tuple
+  along side its index.
+
+  ## Examples
+
+      iex> Enum.with_index [1,2,3]
+      [{1,0},{2,1},{3,2}]
+
+  """
+  @spec with_index(t) :: list({ element, non_neg_integer })
+  def with_index(collection) do
+    map_reduce(collection, 0, fn x, acc ->
+      { { x, acc }, acc + 1 }
+    end) |> elem(0)
   end
 
   ## Helpers
@@ -1321,6 +1317,14 @@ defmodule Enum do
   defp do_find_value([], ifnone, _) do
     ifnone
   end
+
+  ## shuffle
+
+  defp unwrap([{_, h} | collection], t) do
+    unwrap(collection, [h|t])
+  end
+
+  defp unwrap([], t), do: t
 
   ## sort
 

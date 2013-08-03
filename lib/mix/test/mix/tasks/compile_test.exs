@@ -52,8 +52,6 @@ defmodule Mix.Tasks.CompileTest do
       assert File.regular?("ebin/Elixir.A.beam")
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
-  after
-    purge [A, B, C]
   end
 
   test "compile a project with mixfile" do
@@ -67,7 +65,33 @@ defmodule Mix.Tasks.CompileTest do
       assert_received { :mix_shell, :info, ["Generated custom_app.app"] }
     end
   after
+    Mix.Project.pop
+  end
+
+  test "compile a project with multiple compilers and a syntax error in an erlang file" do
+    Mix.Project.push CustomApp
+
+    in_fixture "no_mixfile", fn ->
+      import ExUnit.CaptureIO
+
+      File.mkdir!("src")
+      File.write!("src/a.erl", """)
+      -module(b).
+      def b(), do: b
+      """
+      assert File.regular?("src/a.erl")
+
+      assert_raise CompileError, fn ->
+        capture_io fn -> Mix.Tasks.Compile.run ["--force"] end
+      end
+
+      refute File.regular?("ebin/Elixir.A.beam")
+      refute File.regular?("ebin/Elixir.B.beam")
+      refute File.regular?("ebin/Elixir.C.beam")
+    end
+  after
     purge [A, B, C]
     Mix.Project.pop
   end
+
 end

@@ -9,14 +9,14 @@ defmodule Mix.Utils do
   * From command names to module names, i.e. how the command
     `deps.get` translates to `Deps.Get` and vice-versa;
 
-  * From underscore to camelize, i.e. how the file path
+  * From underscore to CamelCase, i.e. how the file path
     `my_project` translates to `MyProject`;
 
   """
 
   @doc """
   Gets the mix home. It defaults to `~/.mix` unless the
-  MIX_HOME environment variable is set.
+  `MIX_HOME` environment variable is set.
   """
   def mix_home do
     System.get_env("MIX_HOME") || Path.expand("~/.mix")
@@ -24,7 +24,7 @@ defmodule Mix.Utils do
 
   @doc """
   Gets all extra paths defined in the environment variable
-  MIX_PATH. MIX_PATH may contain multiple paths. If on windows,
+  `MIX_PATH`. `MIX_PATH` may contain multiple paths. If on Windows,
   those paths should be separated by `;`, if on unix systems,
   use `:`.
   """
@@ -44,15 +44,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Gets the source location of a module as a binary.
-  """
-  def source(module) do
-    source = module.__info__(:compile)[:source]
-    source && list_to_binary(source)
-  end
-
-  @doc """
-  Takes a `command` name and try to load a module
+  Takes a `command` name and attempts to load a module
   with the command name converted to a module name
   in the given `at` scope.
 
@@ -71,27 +63,28 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Returns true if any of the sources are stale
-  compared to the given target.
+  Returns `true` if any of the `sources` are stale
+  compared to the given `targets`.
   """
   def stale?(sources, targets) do
     Enum.any? stale_stream(sources, targets)
   end
 
   @doc """
-  Extract all stale sources compared to the given targets.
+  Extract all stale `sources` compared to the given `targets`.
   """
+  def extract_stale(_sources, []), do: []
+
   def extract_stale(sources, targets) do
     stale_stream(sources, targets) |> Enum.to_list
   end
 
   defp stale_stream(sources, targets) do
-    last_modifieds = Enum.map(targets, last_modified(&1))
+    modified_target = targets |> Enum.map(last_modified(&1)) |> Enum.min
 
-    Stream.filter sources, fn(source) ->
-      source_stat = source_mtime(source)
-      Enum.any?(last_modifieds, source_stat > &1)
-    end
+    Stream.filter(sources, fn(source) ->
+      source_mtime(source) > modified_target
+    end)
   end
 
   defp source_mtime({ _, { { _, _, _ }, { _, _, _ } } = source }) do
@@ -99,7 +92,7 @@ defmodule Mix.Utils do
   end
 
   defp source_mtime(source) do
-    File.stat!(source).mtime
+    last_modified(source)
   end
 
   defp last_modified(path) do
@@ -109,8 +102,15 @@ defmodule Mix.Utils do
     end
   end
 
-  @doc """
-  Reads the manifest and return each entry.
+  @doc %B"""
+  Reads the given file as a manifest and returns each entry
+  as a list.
+
+  A manifest is a tabular file where each line is a row
+  and each entry in a row is separated by "\t". The first
+  entry must always be a path to a compiled artifact.
+
+  In case there is no manifest file, returns an empty list.
   """
   def read_manifest(file) do
     case File.read(file) do
@@ -120,20 +120,17 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Generates a manifest containing all files generated
-  during a given compilation step. It receives the manifest
-  file name and a function to execute. The result of the
-  function is compared to the manifest in order do detect
-  the files removed from the manifest file.
+  Writes a manifest file with the given `entries` list.
   """
-  def update_manifest(file, new) do
-    File.write!(file, Enum.join(new, "\n"))
+  def write_manifest(file, entries) do
+    Path.dirname(file) |> File.mkdir_p!
+    File.write!(file, Enum.join(entries, "\n"))
   end
 
   @doc """
   Extract files from a list of paths.
 
-  In case any of the paths is a directory, the directory is looped
+  If any of the paths is a directory, the directory is looped
   recursively searching for the given extensions or the given pattern.
   When looking up directories, files starting with "." are ignored.
   """
@@ -160,9 +157,9 @@ defmodule Mix.Utils do
   and concatenating normal lists.
   """
   def config_merge(old, new) do
-    Keyword.merge old, new, fn(_, x, y) ->
+    Keyword.merge(old, new, fn(_, x, y) ->
       if is_list(x) and is_list(y) do
-        if is_keyword(x) and is_keyword(y) do
+        if Keyword.keyword?(x) and Keyword.keyword?(y) do
           config_merge(x, y)
         else
           x ++ y
@@ -170,11 +167,7 @@ defmodule Mix.Utils do
       else
         y
       end
-    end
-  end
-
-  defp is_keyword(x) do
-    Enum.all? x, match?({ atom, _ } when is_atom(atom), &1)
+    end)
   end
 
   @doc """
@@ -189,8 +182,8 @@ defmodule Mix.Utils do
       Mix.Utils.underscore "Foo.Bar" #=> "foo/bar"
       Mix.Utils.underscore Foo.Bar   #=> "foo/bar"
 
-  In general, underscore can be thought as the reverse of
-  camelize, however, in some cases formatting may be lost:
+  In general, `underscore` can be thought of as the reverse of
+  `camelize`, however, in some cases formatting may be lost:
 
       Mix.Utils.underscore "SAPExample"  #=> "sap_example"
       Mix.Utils.camelize   "sap_example" #=> "SapExample"
@@ -230,7 +223,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Converts the given string to camelize format.
+  Converts the given string to CamelCase format.
 
   ## Examples
 
@@ -271,10 +264,11 @@ defmodule Mix.Utils do
 
   @doc """
   Returns the given path string relative to the current
-  working directory.
+  working directory. In case the current working directory
+  cannot be retrieved, returns the path with no changes.
   """
-  def relative_to_cwd(path) do
-    case File.cwd do
+  def relative_to_cwd(path, cwd // File.cwd) do
+    case cwd do
       { :ok, base } -> Path.relative_to(path, base)
       _ -> path
     end
@@ -282,7 +276,7 @@ defmodule Mix.Utils do
 
   @doc """
   Takes a module and converts it to a command. The nesting
-  argument can be given in order to remove the nesting of
+  argument can be given in order to remove the nesting of a
   module.
 
   ## Examples
@@ -306,7 +300,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Takes a command and converts it to a module name format.
+  Takes a command and converts it to the module name format.
 
   ## Examples
 
@@ -332,15 +326,20 @@ defmodule Mix.Utils do
   defp to_lower_char(char) when char in ?A..?Z, do: char + 32
   defp to_lower_char(char), do: char
 
-	@doc """
-	Opens and reads content from either a URL or a local filesystem path.
-	Used by local.install and local.rebar.
-	"""
-	def read_path(path) do
+  @doc """
+  Opens and reads content from either a URL or a local filesystem path.
+
+  Used by tasks like `local.install` and `local.rebar` that support
+  installation either from a URL or a local file.
+
+  Raises if the given path is not a url, nor a file or if the
+  file or url are invalid.
+  """
+  def read_path!(path) do
     cond do
       is_url?(path)  -> read_url(path)
       is_file?(path) -> read_file(path)
-      :else          -> raise Mix.Error, message: "expected #{path} to be a url or a local file path"
+      :else          -> raise Mix.Error, message: "Expected #{path} to be a url or a local file path"
     end
   end
 
@@ -359,9 +358,9 @@ defmodule Mix.Utils do
       { :ok, { { _, status, _ }, _, body } } when status in 200..299 ->
         iolist_to_binary(body)
       { :ok, { { _, status, _ }, _, _ } } ->
-        raise Mix.Error, message: "could not access url #{path}, got status: #{status}"
+        raise Mix.Error, message: "Could not access url #{path}, got status: #{status}"
       { :error, reason } ->
-        raise Mix.Error, message: "could not access url #{path}, error: #{inspect reason}"
+        raise Mix.Error, message: "Could not access url #{path}, error: #{inspect reason}"
     end
   end
 

@@ -121,6 +121,15 @@ defmodule StringTest do
     assert String.strip("___  abc  ___", ?_) == "  abc  "
   end
 
+  test :reverse do
+    assert String.reverse("") == ""
+    assert String.reverse("abc") == "cba"
+    assert String.reverse("Hello World") == "dlroW olleH"
+    assert String.reverse("Hello ∂og") == "go∂ olleH"
+    assert String.reverse("Ā̀stute") == "etutsĀ̀"
+    assert String.reverse(String.reverse("Hello World")) == "Hello World"
+  end
+
   test :replace do
     assert String.replace("a,b,c", ",", "-") == "a-b-c"
     assert String.replace("a,b,c", [",", "b"], "-") == "a---c"
@@ -374,4 +383,43 @@ defmodule StringTest do
     end
   end
 
+  test :to_char_list do
+    assert String.to_char_list("æß")  == { :ok, [?æ, ?ß] }
+    assert String.to_char_list("abc") == { :ok, [?a, ?b, ?c] }
+
+    assert String.to_char_list(<< 0xDF, 0xFF >>) == { :error, [], << 223, 255 >> }
+    assert String.to_char_list(<< 106, 111, 115, 195 >>) == { :incomplete, 'jos', << 195 >> }
+  end
+
+  test :to_char_list! do
+    assert String.to_char_list!("æß")  == [?æ, ?ß]
+    assert String.to_char_list!("abc") == [?a, ?b, ?c]
+
+    assert_raise String.UnicodeConversionError,
+                 "invalid encoding starting at <<223, 255>>", fn ->
+      String.to_char_list!(<< 0xDF, 0xFF >>)
+    end
+
+    assert_raise String.UnicodeConversionError,
+                 "incomplete encoding starting at <<195>>", fn ->
+      String.to_char_list!(<< 106, 111, 115, 195 >>)
+    end
+  end
+
+  test :from_char_list do
+    assert String.from_char_list([?æ, ?ß]) == { :ok, "æß" }
+    assert String.from_char_list([?a, ?b, ?c]) == { :ok, "abc" }
+
+    assert String.from_char_list([0xDFFF]) == { :error, "", [0xDFFF] }
+  end
+
+  test :from_char_list! do
+    assert String.from_char_list!([?æ, ?ß]) == "æß"
+    assert String.from_char_list!([?a, ?b, ?c]) == "abc"
+
+    assert_raise String.UnicodeConversionError,
+                 "invalid code point 57343", fn ->
+      String.from_char_list!([0xDFFF])
+    end
+  end
 end

@@ -41,7 +41,7 @@ defmodule Mix.Tasks.New do
 
     case argv do
       [] ->
-        raise Mix.Error, message: "expected PATH to be given, please use `mix new PATH`"
+        raise Mix.Error, message: "Expected PATH to be given, please use `mix new PATH`"
       [path|_] ->
         name = Path.basename(Path.expand(path))
         check_project_name!(name)
@@ -114,13 +114,13 @@ defmodule Mix.Tasks.New do
 
     Commands like `mix compile` and `mix test`, when executed
     in the umbrella project root, will automatically run
-    inside each application in the apps/ directory.
+    for each application in the apps/ directory.
     """
   end
 
   defp check_project_name!(name) do
     unless name =~ %r/^[a-z][\w_]*$/ do
-      raise Mix.Error, message: "project path must start with a letter and have only lowercase letters, numbers and underscore"
+      raise Mix.Error, message: "Project path must start with a letter and have only lowercase letters, numbers and underscore"
     end
   end
 
@@ -154,7 +154,7 @@ defmodule Mix.Tasks.New do
     end
 
     # Returns the list of dependencies in the format:
-    # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
+    # { :foobar, "~> 0.1", git: "https://github.com/elixir-lang/foobar.git" }
     defp deps do
       []
     end
@@ -171,7 +171,7 @@ defmodule Mix.Tasks.New do
     end
 
     # Returns the list of dependencies in the format:
-    # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
+    # { :foobar, "~> 0.1", git: "https://github.com/elixir-lang/foobar.git" }
     # These dependencies are not accessible from child applications
     defp deps do
       []
@@ -218,8 +218,6 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :test_lib, """
-  Code.require_file "test_helper.exs", __DIR__
-
   defmodule <%= @mod %>Test do
     use ExUnit.Case
 

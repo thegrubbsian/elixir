@@ -54,11 +54,11 @@ defmodule EEx.Tokenizer do
   # Retrieve marker for <%
 
   defp retrieve_marker('=' ++ t) do
-    { '=', t }
+    { "=", t }
   end
 
   defp retrieve_marker(t) do
-    { '', t }
+    { "", t }
   end
 
   # Tokenize an expression until we find %>
@@ -128,11 +128,11 @@ defmodule EEx.Tokenizer do
   end
 
   defp fn_index(tokens) do
-    Enum.find_index(tokens, function do
+    Enum.find_index tokens, fn
       { :fn_paren, _ } -> true
       { :fn, _ }       -> true
       _                -> false
-    end)
+    end
   end
 
   defp end_index(tokens) do

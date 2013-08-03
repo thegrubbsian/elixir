@@ -8,20 +8,20 @@ defmodule Mix.Tasks.Compile.App do
   @moduledoc """
   Writes an .app file.
 
-  By default, this task will detect all modules in your compile_path
-  (default to "ebin") and generate a best guess for your application
-  specification. This best guess also includes "kernel", "stdlib"
-  and "elixir" as application dependencies.
+  By default, this task will detect all modules in your `compile_path`
+  (defaults to `ebin`) and generate a best guess for your application
+  specification. This best guess also includes `kernel`, `stdlib`
+  and `elixir` as application dependencies.
 
   You can optionally define an `application/0` function inside your
   `Mix.Project` that returns a keyword list to further configure
-  your application according to OTP design principles:
+  your application according to the OTP design principles:
 
   http://www.erlang.org/doc/design_principles/applications.html
 
   ## Command line options
 
-  * `--force` forces compilation regardless of mod times
+  * `--force` - forces compilation regardless of modification times
 
   ## Configuration
 
@@ -41,13 +41,13 @@ defmodule Mix.Tasks.Compile.App do
     validate_app(app)
     validate_version(version)
 
-    path    = config[:compile_path] || "ebin"
+    path    = config[:compile_path]
     beams   = Path.wildcard('#{path}/*.beam')
 
     target  = Path.join(path, "#{app}.app")
     sources = Mix.Project.config_files ++ beams
 
-    if opts[:force] or Mix.Utils.stale?(sources, [target]) do
+    if opts[:force] || Mix.Utils.stale?(sources, [target]) do
       best_guess = [
         vsn: to_char_list(version),
         modules: modules_from(beams),
@@ -64,9 +64,7 @@ defmodule Mix.Tasks.Compile.App do
       contents   = { :application, app, properties }
 
       File.mkdir_p!(Path.dirname(target))
-      file = File.open!(target, [:write])
-      :io.fwrite(file, "~p.", [contents])
-      File.close(file)
+      File.open!(target, [:write], :io.fwrite(&1, "~p.", [contents]))
 
       Mix.shell.info "Generated #{app}.app"
       :ok

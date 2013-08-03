@@ -2,8 +2,7 @@
 %% in between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([import/5, format_error/1,
-  ensure_no_local_conflict/4]).
+-export([import/5, special_form/2, format_error/1]).
 -include("elixir.hrl").
 
 %% IMPORT HELPERS
@@ -84,7 +83,7 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   case Final of
     [] -> { keydelete(Key, Old), if_quoted(Meta, Temp, fun(Value) -> keydelete(Key, Value) end) };
     _  ->
-      ensure_no_special_form_conflict(Meta, File, Key, Final, internal_conflict),
+      ensure_no_special_form_conflict(Meta, File, Key, Final),
       { [{ Key, Final }|keydelete(Key, Old)],
         if_quoted(Meta, Temp, fun(Value) -> [{ Key, Final }|keydelete(Key, Value)] end) }
   end.
@@ -139,28 +138,16 @@ get_optional_macros(Module)  ->
 
 %% VALIDATION HELPERS
 
-%% Check if any of the locals defined conflicts with an invoked
-%% Elixir "implemented in Erlang" macro.
-
-ensure_no_local_conflict(Meta, File, Module, AllDefined) ->
-  ensure_no_special_form_conflict(Meta, File, Module, AllDefined, local_conflict).
-
-%% Ensure the given functions don't clash with any
-%% of Elixir non overridable macros.
-
-ensure_no_special_form_conflict(Meta, File, Key, [{Name,Arity}|T], Reason) ->
-  Values = lists:filter(fun({X,Y}) ->
-    (Name == X) andalso ((Y == '*') orelse (Y == Arity))
-  end, special_form()),
-
-  case Values /= [] of
+ensure_no_special_form_conflict(Meta, File, Key, [{Name,Arity}|T]) ->
+  case special_form(Name, Arity) of
     true  ->
-      Tuple = { Reason, { Key, Name, Arity } },
+      Tuple = { special_form_conflict, { Key, Name, Arity } },
       elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
-    false -> ensure_no_special_form_conflict(Meta, File, Key, T, Reason)
+    false ->
+      ensure_no_special_form_conflict(Meta, File, Key, T)
   end;
 
-ensure_no_special_form_conflict(_Meta, _File, _Key, [], _) -> ok.
+ensure_no_special_form_conflict(_Meta, _File, _Key, []) -> ok.
 
 %% ERROR HANDLING
 
@@ -168,10 +155,7 @@ format_error({invalid_import,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it doesn't exist",
     [elixir_errors:inspect(Receiver), Name, Arity]);
 
-format_error({local_conflict,{_, Name, Arity}}) ->
-  io_lib:format("cannot define local ~ts/~B because it conflicts with Elixir special forms", [Name, Arity]);
-
-format_error({internal_conflict,{Receiver, Name, Arity}}) ->
+format_error({special_form_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
     [elixir_errors:inspect(Receiver), Name, Arity]);
 
@@ -210,43 +194,42 @@ remove_internals(Set) ->
   ordsets:del_element({ module_info, 1 },
     ordsets:del_element({ module_info, 0 }, Set)).
 
-%% Macros implemented in Erlang that are not importable.
+%% Special forms
 
-special_form() ->
-  [
-    {'^',1},
-    {'=',2},
-    {'__op__',2},
-    {'__op__',3},
-    {'__scope__',2},
-    {'__block__','*'},
-    {'->','*'},
-    {'<<>>','*'},
-    {'{}','*'},
-    {'[]','*'},
-    {'alias',1},
-    {'alias',2},
-    {'require',1},
-    {'require',2},
-    {'import',1},
-    {'import',2},
-    {'import',3},
-    {'__ENV__',0},
-    {'__CALLER__',0},
-    {'__MODULE__',0},
-    {'__FILE__',0},
-    {'__DIR__',0},
-    {'__aliases__','*'},
-    {'quote',1},
-    {'quote',2},
-    {'unquote',1},
-    {'unquote_splicing',1},
-    {'fn','*'},
-    {'super','*'},
-    {'super?',0},
-    {'bc','*'},
-    {'lc','*'},
-    {'var!',1},
-    {'var!',2},
-    {'alias!',1}
-  ].
+special_form('&',1) -> true;
+special_form('^',1) -> true;
+special_form('=',2) -> true;
+special_form('__op__',2) -> true;
+special_form('__op__',3) -> true;
+special_form('__scope__',2) -> true;
+special_form('__block__',_) -> true;
+special_form('->',_) -> true;
+special_form('<<>>',_) -> true;
+special_form('{}',_) -> true;
+special_form('[]',_) -> true;
+special_form('alias',1) -> true;
+special_form('alias',2) -> true;
+special_form('require',1) -> true;
+special_form('require',2) -> true;
+special_form('import',1) -> true;
+special_form('import',2) -> true;
+special_form('import',3) -> true;
+special_form('__ENV__',0) -> true;
+special_form('__CALLER__',0) -> true;
+special_form('__MODULE__',0) -> true;
+special_form('__FILE__',0) -> true;
+special_form('__DIR__',0) -> true;
+special_form('__aliases__',_) -> true;
+special_form('quote',1) -> true;
+special_form('quote',2) -> true;
+special_form('unquote',1) -> true;
+special_form('unquote_splicing',1) -> true;
+special_form('fn',_) -> true;
+special_form('super',_) -> true;
+special_form('super?',0) -> true;
+special_form('bc',_) -> true;
+special_form('lc',_) -> true;
+special_form('var!',1) -> true;
+special_form('var!',2) -> true;
+special_form('alias!',1) -> true;
+special_form(_, _) -> false.

@@ -5,13 +5,25 @@ defmodule Mix.CLITest do
 
   test "env" do
     in_fixture "only_mixfile", fn ->
-      env = System.cmd %b(MIX_ENV=prod #{elixir_executable} #{mix_executable} run "IO.puts Mix.env")
-      assert env =~ "prod"
+      if match? { :win32, _ }, :os.type do
+        temp_env = "set MIX_ENV=prod &"
+      else
+        temp_env = "MIX_ENV=prod"
+      end
+
+      env = System.cmd %b(#{temp_env} #{elixir_executable} #{mix_executable} run -e "IO.inspect { Mix.env, System.argv }" -- 1 2 3)
+      assert env =~ %b({:prod, ["1", "2", "3"]})
     end
   end
 
   test "default task" do
     in_fixture "no_mixfile", fn ->
+      File.write! "mix.exs", """
+      defmodule P do
+        use Mix.Project
+        def project, do: []
+      end
+      """
       output = mix ""
       assert File.regular?("ebin/Elixir.A.beam")
       assert output =~ "Compiled lib/a.ex"
@@ -60,6 +72,7 @@ defmodule Mix.CLITest do
       assert File.regular?("ebin/Elixir.NewWithTests.beam")
       assert output =~ "1 tests, 0 failures"
       assert output =~ "Generating cover results ... ok"
+      assert File.regular?("cover/Elixir.NewWithTests.html")
     end
   end
 

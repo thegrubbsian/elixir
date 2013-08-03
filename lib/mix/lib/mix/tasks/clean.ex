@@ -1,6 +1,7 @@
 defmodule Mix.Tasks.Clean do
   use Mix.Task
-  alias Mix.Tasks.Compile.Erlang
+  alias Mix.Tasks.Compile.Leex
+  alias Mix.Tasks.Compile.Yecc
 
   @shortdoc "Clean generated application files"
   @recursive true
@@ -15,12 +16,15 @@ defmodule Mix.Tasks.Clean do
   """
   def run(args) do
     { opts, _ } = OptionParser.parse(args)
-    File.rm_rf Mix.project[:compile_path]  || "ebin"
 
-    Enum.each Mix.project[:erlc_paths], fn(source_path) ->
-      pairs = Erlang.extract_stale_pairs(source_path, [:yrl, :xrl], source_path, :erl, true)
-      Enum.each pairs, fn { _, output } -> File.rm_rf output end
-    end
+    manifests = Mix.Tasks.Compile.manifests
+    Enum.each(manifests, fn(manifest) ->
+      Enum.each Mix.Utils.read_manifest(manifest),
+                &1 |> String.split("\t") |> hd |> File.rm
+      File.rm(manifest)
+    end)
+
+    File.rm_rf(Mix.project[:compile_path])
 
     if opts[:all], do: Mix.Task.run("deps.clean")
   end

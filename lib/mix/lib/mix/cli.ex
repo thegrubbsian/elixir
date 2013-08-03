@@ -30,7 +30,7 @@ defmodule Mix.CLI do
   end
 
   defp get_task([]) do
-    { Mix.project[:default_task] || "run", [] }
+    { Mix.project[:default_task], [] }
   end
 
   defp run_task(name, args) do
@@ -57,14 +57,22 @@ defmodule Mix.CLI do
 
     args = load_mixfile(args)
     { task, args } = get_task(args)
+    change_env(task)
 
     if Mix.Project.get do
-      Mix.Task.run "loadpaths", ["--no-check"]
+      Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
       Mix.Task.reenable "loadpaths"
       Mix.Task.reenable "deps.loadpaths"
     end
 
     run_task task, args
+  end
+
+  defp change_env(task) do
+    if nil?(System.get_env("MIX_ENV")) && (env = Mix.project[:preferred_cli_env][task]) do
+      Mix.env(env)
+      Mix.Project.push Mix.Project.pop
+    end
   end
 
   defp display_banner() do

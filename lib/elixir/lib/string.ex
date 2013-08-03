@@ -6,22 +6,22 @@ defmodule String do
 
   The functions in this module act according to the
   Unicode Standard, version 6.2.0. For example,
-  `titlecase`, `downcase`, `strip` are provided by this
+  `capitalize/1`, `downcase/1`, `strip/1` are provided by this
   module.
 
   Besides this module, Elixir provides more low-level
-  operations that works directly with binaries. Some
+  operations that work directly with binaries. Some
   of those can be found in the `Kernel` module, as:
 
-  * `binary_part/2` and `binary_part/3` - retrieves part of the binary
-  * `bit_size/1` and `byte_size/1` - size related functions
-  * `is_bitstring/1` and `is_binary/1` - type checking function
-  * Plus a bunch of conversion functions, like `binary_to_atom/2`,
-    `binary_to_integer/2`, `binary_to_term/1` and their opposite
-    like `integer_to_binary/2`
+  * `Kernel.binary_part/2` and `Kernelbinary_part/3` - retrieves part of the binary
+  * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
+  * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
+  * Plus a number of conversion functions, like `Kernel.binary_to_atom/2`,
+    `Kernel.binary_to_integer/2`, `Kernel.binary_to_term/1` and their opposite
+    like `Kernel.integer_to_binary/2`
 
-  Finally, [the `:binary` module](http://erlang.org/doc/man/binary.html)
-  provides a couple other functions that works on the byte level.
+  Finally, the [`:binary` module](http://erlang.org/doc/man/binary.html)
+  provides a few other functions that work on the byte level.
 
   ## Codepoints and graphemes
 
@@ -93,7 +93,7 @@ defmodule String do
   codepoint needs to be rejected.
 
   This module relies on this behaviour to ignore such invalid
-  characters. For example, `String.length` is going to return
+  characters. For example, `length/1` is going to return
   a correct result even if an invalid codepoint is fed into it.
 
   In other words, this module expects invalid data to be detected
@@ -108,7 +108,7 @@ defmodule String do
 
   @doc """
   Checks if a string is printable considering it is encoded
-  as UTF-8. Returns true if so, false otherwise.
+  as UTF-8. Returns `true` if so, `false` otherwise.
 
   ## Examples
 
@@ -200,7 +200,7 @@ defmodule String do
   end
 
   @doc """
-  Splits a string on sub strings at each Unicode whitespace
+  Splits a string on substrings at each Unicode whitespace
   occurrence with leading and trailing whitespace ignored.
 
   ## Examples
@@ -217,12 +217,12 @@ defmodule String do
   defdelegate split(binary), to: String.Unicode
 
   @doc """
-  Divides a string into sub strings based on a pattern,
-  returning a list of these sub string. The pattern can
+  Divides a string into substrings based on a pattern,
+  returning a list of these substrings. The pattern can
   be a string, a list of strings or a regular expression.
 
   The string is split into as many parts as possible by
-  default, unless the `global` option is set to false.
+  default, unless the `global` option is set to `false`.
 
   ## Examples
 
@@ -258,7 +258,7 @@ defmodule String do
   end
 
   @doc """
-  Convert all characters on the given string to upcase.
+  Convert all characters on the given string to uppercase.
 
   ## Examples
 
@@ -274,7 +274,7 @@ defmodule String do
   defdelegate upcase(binary), to: String.Unicode
 
   @doc """
-  Convert all characters on the given string to downcase.
+  Convert all characters on the given string to lowercase.
 
   ## Examples
 
@@ -291,11 +291,11 @@ defmodule String do
 
   @doc """
   Converts the first character in the given string to
-  titlecase and the remaining to downcase.
+  uppercase and the remaining to lowercase.
 
   This relies on the titlecase information provided
   by the Unicode Standard. Note this function makes
-  no attempt in capitalizing all words in the string
+  no attempt to capitalize all words in the string
   (usually known as titlecase).
 
   ## Examples
@@ -430,7 +430,7 @@ defmodule String do
   @doc """
   Returns a new binary based on `subject` by replacing the parts
   matching `pattern` for `replacement`. By default, it replaces
-  all entries, except if the `global` option is set to false.
+  all entries, except if the `global` option is set to `false`.
 
   If the replaced part must be used in `replacement`, then the
   position or the positions where it is to be inserted must be
@@ -467,6 +467,30 @@ defmodule String do
 
     opts
   end
+
+  @doc """
+  Reverses the given string. Works on graphemes.
+
+  ## Examples
+
+      iex> String.reverse("abcd")
+      "dcba"
+      iex> String.reverse("hello world")
+      "dlrow olleh"
+      iex> String.reverse("hello ∂og")
+      "go∂ olleh"
+
+  """
+  @spec reverse(t) :: t
+  def reverse(string) do
+    do_reverse(String.Unicode.next_grapheme(string), [])
+  end
+
+  defp do_reverse({grapheme, rest}, acc) do
+    do_reverse(String.Unicode.next_grapheme(rest), [grapheme|acc])
+  end
+
+  defp do_reverse(:no_grapheme, acc), do: list_to_binary(acc)
 
   @doc """
   Returns a binary `subject` duplicated `n` times.
@@ -509,7 +533,7 @@ defmodule String do
   remaining of the string or `:no_codepoint` in case
   the string reached its end.
 
-  As the other functions in the String module, this
+  As with other functions in the String module, this
   function does not check for the validity of the codepoint.
   That said, if an invalid codepoint is found, it will
   be returned by this function.
@@ -650,7 +674,7 @@ defmodule String do
 
   @doc """
   Returns the last grapheme from an utf8 string,
-  nil if the string is empty.
+  `nil` if the string is empty.
 
   ## Examples
 
@@ -738,7 +762,7 @@ defmodule String do
   @doc """
   Returns a substring starting at the offset given by the first, and
   a length given by the second.
-  If the offset is greater than string length, than it returns nil.
+  If the offset is greater than string length, than it returns `nil`.
 
   ## Examples
 
@@ -803,8 +827,8 @@ defmodule String do
 
   @doc """
   Converts a string to an integer. If successful, returns a
-  tuple of form {integer, remainder of string}. If unsuccessful,
-  returns :error.
+  tuple of the form `{integer, remainder of string}`. If unsuccessful,
+  returns `:error`.
 
   ## Examples
 
@@ -828,9 +852,9 @@ defmodule String do
 
   @doc """
   Converts a string to a float. If successful, returns a
-  tuple of form {float, remainder of string}. If unsuccessful,
-  returns :error. If given an integer value, will return
-  same as to_integer/1.
+  tuple of the form `{float, remainder of string}`. If unsuccessful,
+  returns `:error`. If given an integer value, will return
+  the same value as `to_integer/1`.
 
   ## Examples
 
@@ -861,8 +885,8 @@ defmodule String do
   end
 
   @doc """
-  Returns true if `string` starts with any of the prefixes given, otherwise
-  false. `prefixes` can be either a single prefix or a list of prefixes.
+  Returns `true` if `string` starts with any of the prefixes given, otherwise
+  `false`. `prefixes` can be either a single prefix or a list of prefixes.
 
   ## Examples
 
@@ -884,7 +908,7 @@ defmodule String do
     do_starts_with(string, prefix)
   end
 
-  defp do_starts_with(_, "") do
+  defp do_starts_with(string, "") when is_binary(string) do
     true
   end
 
@@ -897,8 +921,8 @@ defmodule String do
   end
 
   @doc """
-  Returns true if `string` ends with any of the suffixes given, otherwise
-  false. `suffixes` can be either a single suffix or a list of suffixes.
+  Returns `true` if `string` ends with any of the suffixes given, otherwise
+  `false`. `suffixes` can be either a single suffix or a list of suffixes.
 
   ## Examples
 
@@ -920,7 +944,7 @@ defmodule String do
     do_ends_with(string, suffix)
   end
 
-  defp do_ends_with(_, "") do
+  defp do_ends_with(string, "") when is_binary(string) do
     true
   end
 
@@ -936,7 +960,7 @@ defmodule String do
   end
 
   @doc """
-  Returns true if `string` contains match, otherwise false.
+  Returns `true` if `string` contains match, otherwise `false`.
   `matches` can be either a single string or a list of strings.
 
   ## Examples
@@ -959,7 +983,7 @@ defmodule String do
     do_contains(string, match)
   end
 
-  defp do_contains(_, "") do
+  defp do_contains(string, "") when is_binary(string) do
     true
   end
 
@@ -969,5 +993,126 @@ defmodule String do
 
   defp do_contains(_, _) do
     raise ArgumentError
+  end
+
+  defexception UnicodeConversionError, encoded: nil, rest: nil, kind: nil do
+    def message(exception) do
+      "#{exception.kind} #{detail(exception.rest)}"
+    end
+
+    defp detail(rest) when is_binary(rest) do
+      "encoding starting at #{inspect rest}"
+    end
+
+    defp detail([h|_]) do
+      "code point #{h}"
+    end
+  end
+
+  @doc """
+  Converts a string into a char list converting each codepoint to its
+  respective integer value.
+
+  ## Examples
+
+      iex> String.to_char_list("æß")
+      { :ok, 'æß' }
+      iex> String.to_char_list("abc")
+      { :ok, 'abc' }
+
+  """
+  @spec to_char_list(String.t) :: { :ok, char_list } | { :error, list, binary } | { :incomplete, list, binary }
+  def to_char_list(string) do
+    case :unicode.characters_to_list(string) do
+      result when is_list(result) ->
+        { :ok, result }
+
+      { :error, _, _ } = error ->
+        error
+
+      { :incomplete, _, _ } = incomplete ->
+        incomplete
+    end
+  end
+
+  @doc """
+  Converts a string into a char list converting each codepoint to its
+  respective integer value.
+
+  In case the conversion fails or is incomplete,
+  it raises a `String.UnicodeConversionError`.
+
+  ## Examples
+
+      iex> String.to_char_list!("æß")
+      'æß'
+      iex> String.to_char_list!("abc")
+      'abc'
+
+  """
+  @spec to_char_list!(String.t) :: char_list | no_return
+  def to_char_list!(string) do
+    case :unicode.characters_to_list(string) do
+      result when is_list(result) ->
+        result
+
+      { :error, encoded, rest } ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      { :incomplete, encoded, rest } ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
+  end
+
+  @doc """
+  Converts a list of integer codepoints to a string.
+
+  ## Examples
+
+      iex> String.from_char_list([0x00E6, 0x00DF])
+      { :ok, "æß" }
+      iex> String.from_char_list([0x0061, 0x0062, 0x0063])
+      { :ok, "abc" }
+
+  """
+  @spec from_char_list(char_list) :: { :ok, String.t } | { :error, binary, binary } | { :incomplete, binary, binary }
+  def from_char_list(list) do
+    case :unicode.characters_to_binary(list) do
+      result when is_binary(result) ->
+        { :ok, result }
+
+      { :error, _, _ } = error ->
+        error
+
+      { :incomplete, _, _ } = incomplete ->
+        incomplete
+    end
+  end
+
+  @doc """
+  Converts a list of integer codepoints to a string.
+
+  In case the conversion fails, it raises a `String.UnicodeConversionError`.
+
+  ## Examples
+
+      iex> String.from_char_list!([0x00E6, 0x00DF])
+      "æß"
+      iex> String.from_char_list!([0x0061, 0x0062, 0x0063])
+      "abc"
+
+  """
+  @spec from_char_list!(char_list) :: String.t | no_return
+  def from_char_list!(list) do
+    case :unicode.characters_to_binary(list) do
+      result when is_binary(result) ->
+        result
+
+      { :error, encoded, rest } ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      { :incomplete, encoded, rest } ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
   end
 end

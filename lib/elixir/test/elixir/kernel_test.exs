@@ -270,47 +270,6 @@ defmodule KernelTest do
     end
   end
 
-  defmodule Function do
-    use ExUnit.Case, async: true
-
-    test :remote_syntax_function do
-      assert function(:erlang, :atom_to_list, 1).(:a) == 'a'
-      assert function(:erlang.atom_to_list/1) ==
-             function(:erlang, :atom_to_list, 1)
-      assert function(Enum.map/2) == function(Enum, :map, 2)
-    end
-
-    test :local_syntax_function do
-      assert function(atl/1).(:a) == 'a'
-    end
-
-    test :retrieve_imported_function do
-      assert function(atom_to_list/1).(:a) == 'a'
-    end
-
-    test :retrieve_dynamic_function do
-      a = :erlang
-      b = :atom_to_list
-      c = 1
-
-      assert function(a, b, c).(:a) == 'a'
-    end
-
-    test :function do
-      f = function do
-        x, y when y > 0 -> x + y
-        x, y -> x - y
-      end
-
-      assert f.(1, 2)  == 3
-      assert f.(1, -2) == 3
-    end
-
-    defp atl(arg) do
-      :erlang.atom_to_list arg
-    end
-  end
-
   defmodule DefDelegate do
     use ExUnit.Case, async: true
 
@@ -336,24 +295,20 @@ defmodule KernelTest do
   defmodule PipelineOp do
     use ExUnit.Case, async: true
 
-    test :simple do
+    test "simple" do
       assert [1, [2], 3] |> List.flatten == [1, 2, 3]
     end
 
-    test :nested do
+    test "nested pipelines" do
       assert [1, [2], 3] |> List.flatten |> Enum.map(&1 * 2) == [2, 4, 6]
     end
 
-    test :local do
+    test "local call" do
       assert [1, [2], 3] |> List.flatten |> local == [2, 4, 6]
     end
 
-    test :map do
+    test "pipeline with capture" do
       assert Enum.map([1, 2, 3], &1 |> twice |> twice) == [4, 8, 12]
-    end
-
-    test :atom do
-      assert __MODULE__ |> :constant == 13
     end
 
     test "non-call" do
@@ -361,12 +316,8 @@ defmodule KernelTest do
       assert [1] |> hd(&1).() == 1
 
       import CompileAssertion
-
-      assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1 * 2", "1 |> &1*2"
-      assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: hd(&1)", "[1] |> hd(&1)"
+      assert_compile_fail ArgumentError, "unsupported expression in pipeline |> operator: 2", "1 |> 2"
     end
-
-    def constant, do: 13
 
     defp twice(a), do: a * 2
 

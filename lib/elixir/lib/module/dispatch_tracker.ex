@@ -94,8 +94,6 @@ defmodule Module.DispatchTracker do
 
   @doc """
   Returns all the modules which were imported.
-  All external dependencies to a module is the sum
-  of imports and remotes.
   """
   @spec imports(ref) :: [module]
   def imports(ref) do
@@ -114,9 +112,16 @@ defmodule Module.DispatchTracker do
   end
 
   @doc """
-  Returns all the modules which were remotely dispatched
-  to. All external dependencies to a module is the sum
-  of imports and remotes.
+  Returns all the aliases defined in the given module.
+  """
+  @spec aliases(ref) :: [module]
+  def aliases(ref) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
+    :digraph.out_neighbours(d, :alias)
+  end
+
+  @doc """
+  Returns all the modules which were remotely dispatched to.
   """
   @spec remotes(ref) :: [module]
   def remotes(ref) do
@@ -156,7 +161,11 @@ defmodule Module.DispatchTracker do
   end
 
   defp to_pid(pid) when is_pid(pid),  do: pid
-  defp to_pid(mod) when is_atom(mod), do: Module.get_attribute(mod, :__dispatch_tracker)
+  defp to_pid(mod) when is_atom(mod) do
+    table = :elixir_module.data_table(mod)
+    [{ _, val }] = :ets.lookup(table, :__dispatch_tracker)
+    val
+  end
 
   defp only_tuples(list) do
     lc x inlist list, is_tuple(x), do: x
@@ -197,16 +206,22 @@ defmodule Module.DispatchTracker do
     :gen_server.cast(pid, { :add_local, from, to })
   end
 
+  # Adds an alias.
+  @doc false
+  def add_alias(pid, module) when is_atom(module) do
+    :gen_server.cast(pid, { :add_alias, module })
+  end
+
   # Adds a remote dispatch to the given target.
   @doc false
   def add_remote(pid, function, module, target) when is_atom(module) and is_tuple(target) do
-    :gen_server.cast(pid, { :add_remote, function, module, target })
+    :gen_server.cast(pid, { :add_external, :remote, function, module, target })
   end
 
   # Adds a import dispatch to the given target.
   @doc false
   def add_import(pid, function, module, target) when is_atom(module) and is_tuple(target) do
-    :gen_server.cast(pid, { :add_import, function, module, target })
+    :gen_server.cast(pid, { :add_external, :import, function, module, target })
   end
 
   # Associates a module with a warn. This adds the given
@@ -307,6 +322,7 @@ defmodule Module.DispatchTracker do
   def init([]) do
     d = :digraph.new([:protected])
     :digraph.add_vertex(d, :local)
+    :digraph.add_vertex(d, :alias)
     :digraph.add_vertex(d, :import)
     :digraph.add_vertex(d, :remote)
     :digraph.add_vertex(d, :warn)
@@ -337,13 +353,14 @@ defmodule Module.DispatchTracker do
     { :noreply, d }
   end
 
-  def handle_cast({ :add_remote, function, module, { name, arity } }, d) do
-    handle_import_or_remote(d, :remote, function, module, name, arity)
+  def handle_cast({ :add_alias, module }, d) do
+    :digraph.add_vertex(d, module)
+    replace_edge!(d, :alias, module)
     { :noreply, d }
   end
 
-  def handle_cast({ :add_import, function, module, { name, arity } }, d) do
-    handle_import_or_remote(d, :import, function, module, name, arity)
+  def handle_cast({ :add_external, kind, function, module, { name, arity } }, d) do
+    handle_import_or_remote(d, kind, function, module, name, arity)
     { :noreply, d }
   end
 

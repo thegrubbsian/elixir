@@ -15,8 +15,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
       assert_received { :mix_shell, :info, ["Compiled lib/c.ex"] }
     end
-  after
-    purge [A, B, C]
   end
 
   test "only recompiles if file was updated unless forced" do
@@ -32,8 +30,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge [A, B, C]
       assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
     end
-  after
-    purge [A, B, C]
   end
 
   test "removes old artifact files" do
@@ -41,17 +37,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       assert File.regular?("ebin/Elixir.A.beam")
 
-      # Now we have a noop
       File.rm!("lib/a.ex")
-      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
-
-      # --force
-      purge [A, B, C]
-      assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       refute File.regular?("ebin/Elixir.A.beam")
     end
-  after
-    purge [A, B, C]
   end
 
   defmodule SourcePathsProject do
@@ -86,7 +75,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert File.regular?("custom/Elixir.A.beam")
     end
   after
-    purge [A, B, C]
     Mix.Project.pop
   end
 
@@ -101,16 +89,29 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       future = { { 2020, 1, 1 }, { 0, 0, 0 } }
       File.touch!("lib/a.ex", future)
       File.touch!("lib/a.eex", future)
-      Mix.Tasks.Compile.Elixir.run ["--quick"]
+      Mix.Tasks.Compile.Elixir.run []
 
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       refute_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
 
       File.touch!("ebin/.compile.elixir", future)
-
-      assert Mix.Tasks.Compile.Elixir.run(["--quick"]) == :noop
+      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
     end
-  after
-    purge [A, B, C]
+  end
+
+  test "recompile after path dependency changed" do
+    in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
+      Mix.Project.in_project(:bar, "bar", fn _ ->
+        Mix.Tasks.Deps.Compile.run []
+        Mix.Tasks.Compile.Elixir.run []
+
+        assert :noop == Mix.Tasks.Compile.Elixir.run []
+        purge [Bar]
+
+        future = { { 2020, 1, 1 }, { 0, 0, 0 } }
+        File.touch!("../foo/ebin/.compile.elixir", future)
+        assert :ok == Mix.Tasks.Compile.Elixir.run []
+      end)
+    end)
   end
 end

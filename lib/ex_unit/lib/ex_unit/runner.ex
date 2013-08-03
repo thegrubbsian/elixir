@@ -86,12 +86,9 @@ defmodule ExUnit.Runner do
       { test_case, context } = try do
         { :ok, context } = case_name.__ex_unit__(:setup_all, [case: test_case])
         { test_case, context }
-      rescue
-        error ->
-          { test_case.failure({ :error, error, filtered_stacktrace }), nil }
       catch
         kind, error ->
-          { test_case.failure({ kind, error, filtered_stacktrace }), nil }
+          { test_case.failure({ kind, Exception.normalize(kind, error), filtered_stacktrace }), nil }
       end
 
       tests = tests_for(case_name)
@@ -105,12 +102,9 @@ defmodule ExUnit.Runner do
         test_case = try do
           case_name.__ex_unit__(:teardown_all, context)
           test_case
-        rescue
-          error ->
-            test_case.failure { :error, error, filtered_stacktrace }
         catch
           kind, error ->
-            test_case.failure { kind, error, filtered_stacktrace }
+            test_case.failure { kind, Exception.normalize(kind, error), filtered_stacktrace }
         end
 
         self_pid <- { self, :case_finished, test_case, [] }
@@ -136,31 +130,27 @@ defmodule ExUnit.Runner do
     # Run test in a new process so that we can trap exits for a single test
     self_pid = self
     { test_pid, test_ref } = Process.spawn_monitor fn ->
-      test = try do
-        { :ok, context } = case_name.__ex_unit__(:setup, Keyword.put(context, :test, test))
+      { us, test } = :timer.tc(fn ->
+          try do
+          { :ok, context } = case_name.__ex_unit__(:setup, Keyword.put(context, :test, test))
 
-        test = try do
-          apply case_name, test.name, [context]
+          test = try do
+            apply case_name, test.name, [context]
+            test
+          catch
+            kind1, error1 ->
+              test.failure { kind1, Exception.normalize(kind1, error1), filtered_stacktrace }
+          end
+
+          case_name.__ex_unit__(:teardown, Keyword.put(context, :test, test))
           test
-        rescue
-          error1 ->
-            test.failure { :error, error1, filtered_stacktrace }
         catch
-          kind1, error1 ->
-            test.failure { kind1, error1, filtered_stacktrace }
+          kind2, error2 ->
+            test.failure { kind2, Exception.normalize(kind2, error2), filtered_stacktrace }
         end
+      end)
 
-        case_name.__ex_unit__(:teardown, Keyword.put(context, :test, test))
-        test
-      rescue
-        error2 ->
-          test.failure { :error, error2, filtered_stacktrace }
-      catch
-        kind2, error2 ->
-          test.failure { kind2, error2, filtered_stacktrace }
-      end
-
-      self_pid <- { self, :test_finished, test }
+      self_pid <- { self, :test_finished, test.time(us) }
     end
 
     receive do

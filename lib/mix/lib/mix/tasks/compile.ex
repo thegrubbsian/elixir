@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Compile do
   @recursive true
 
   @moduledoc """
-  A meta task that compile source files. It simply runs the
+  A meta task that compiles source files. It simply runs the
   compilers registered in your project. At the end of compilation
   it ensures load paths are set.
 
@@ -13,11 +13,15 @@ defmodule Mix.Tasks.Compile do
 
   * `:compilers` - compilers to be run, defaults to:
 
-      [:elixir, :app]
+    ```
+    [:elixir, :app]
+    ```
 
     It can be configured to handle custom compilers, for example:
 
-      [compilers: [:elixir, :mycompiler, :app]]
+    ```
+    [compilers: [:elixir, :mycompiler, :app]]
+    ```
 
   ## Command line options
 
@@ -32,7 +36,9 @@ defmodule Mix.Tasks.Compile do
   * `:compile_path` - directory to output compiled files.
     Defaults to `"ebin"`, can be configured as:
 
-        [compile_path: "ebin"]
+    ```
+    [compile_path: "ebin"]
+    ```
 
   """
   def run(["--list"]) do
@@ -61,22 +67,31 @@ defmodule Mix.Tasks.Compile do
     shell.info "\nEnabled compilers: #{Enum.join get_compilers, ", "}"
   end
 
+  @doc """
+  Runs this compile task by recursively calling all registered compilers.
+  """
   def run(args) do
-    Mix.Task.run "loadpaths", args
-    compile_path = Mix.project[:compile_path]
+    Mix.Task.run("loadpaths", args)
 
-    changed =
-      Enum.reduce get_compilers, false, fn(compiler, acc) ->
-        res = Mix.Task.run "compile.#{compiler}", args
-        acc or res != :noop
+    Enum.each(get_compilers, fn(compiler) ->
+      Mix.Task.run("compile.#{compiler}", args)
+    end)
+
+    Code.prepend_path Mix.project[:compile_path]
+  end
+
+  @doc """
+  Returns manifests for all compilers.
+  """
+  def manifests do
+    Enum.reduce(get_compilers, [], fn(compiler, acc) ->
+      module = Mix.Task.get("compile.#{compiler}")
+      if function_exported?(module, :manifest, 0) do
+        [module.manifest|acc]
+      else
+        acc
       end
-
-    # If any of the tasks above returns something different
-    # than :noop, it means they produced something, so we
-    # touch the common target `compile_path`. Notice that
-    # we choose :noop since it is also the value returned
-    # by a task that we already invoked.
-    if changed, do: File.touch compile_path
+    end)
   end
 
   defp get_compilers do

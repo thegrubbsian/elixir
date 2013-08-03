@@ -3,6 +3,8 @@ defmodule IEx.Introspection do
   # from modules. Invoked directly from IEX.Helpers.
   @moduledoc false
 
+  import IEx, only: [dont_display_result: 0]
+
   @doc false
   def h(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
@@ -11,17 +13,19 @@ defmodule IEx.Introspection do
           { _, binary } when is_binary(binary) ->
             IO.write IEx.color(:info, "# #{inspect module}\n\n" <> binary)
           { _, _ } ->
-            IO.puts IEx.color(:error, "No docs for #{inspect module} have been found")
+            nodocs(inspect module)
           _ ->
             IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
         end
       { :error, reason } ->
         IO.puts IEx.color(:error, "Could not load module #{inspect module}: #{reason}")
     end
+    dont_display_result
   end
 
   def h(_) do
     IO.puts IEx.color(:error, "Invalid arguments for h helper")
+    dont_display_result
   end
 
   @doc false
@@ -33,9 +37,9 @@ defmodule IEx.Introspection do
       end
 
     unless result == :ok, do:
-      IO.puts IEx.color(:error, "No docs for #{function} have been found")
+      nodocs(function)
 
-    :ok
+    dont_display_result
   end
 
   def h(module, function) when is_atom(module) and is_atom(function) do
@@ -45,18 +49,20 @@ defmodule IEx.Introspection do
       :no_docs ->
         IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
       :not_found ->
-        IO.puts IEx.color(:error, "No docs for #{inspect module}.#{function} have been found")
+        nodocs("#{inspect module}.#{function}")
     end
 
-    :ok
+    dont_display_result
   end
 
   def h(function, arity) when is_atom(function) and is_integer(arity) do
     h([IEx.Helpers, Kernel, Kernel.SpecialForms], function, arity)
+    dont_display_result
   end
 
   def h(_, _) do
     IO.puts IEx.color(:error, "Invalid arguments for h helper")
+    dont_display_result
   end
 
   defp h_mod_fun(mod, fun) when is_atom(mod) and is_atom(fun) do
@@ -81,9 +87,9 @@ defmodule IEx.Introspection do
       end
 
     unless result == :ok, do:
-      IO.puts IEx.color(:error, "No docs for #{function}/#{arity} have been found")
+      nodocs("#{function}/#{arity}")
 
-    :ok
+    dont_display_result
   end
 
   def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
@@ -93,14 +99,15 @@ defmodule IEx.Introspection do
       :no_docs ->
         IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
       :not_found ->
-        IO.puts IEx.color(:error, "No docs for #{inspect module}.#{function}/#{arity} have been found")
+        nodocs("#{inspect module}.#{function}/#{arity}")
     end
 
-    :ok
+    dont_display_result
   end
 
   def h(_, _, _) do
     IO.puts IEx.color(:error, "Invalid arguments for h helper")
+    dont_display_result
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
@@ -163,10 +170,10 @@ defmodule IEx.Introspection do
     types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
 
     if types == [] do
-      IO.puts IEx.color(:error, "No types for #{inspect module} have been found")
+      notypes(inspect module)
     end
 
-    :ok
+    dont_display_result
   end
 
   @doc false
@@ -178,10 +185,10 @@ defmodule IEx.Introspection do
     end
 
     if types == [] do
-       IO.puts  IEx.color(:error, "No types for #{inspect module}.#{type} have been found")
+       notypes("#{inspect module}.#{type}")
     end
 
-    :ok
+    dont_display_result
   end
 
   @doc false
@@ -191,12 +198,12 @@ defmodule IEx.Introspection do
 
     case types do
      [] ->
-       IO.puts  IEx.color(:error, "No types for #{inspect module}.#{type}/#{arity} have been found")
+       notypes("#{inspect module}.#{type}/#{arity}")
      [type] ->
        print_type(type)
     end
 
-    :ok
+    dont_display_result
   end
 
   @doc false
@@ -204,10 +211,10 @@ defmodule IEx.Introspection do
     specs = lc spec inlist beam_specs(module), do: print_spec(spec)
 
     if specs == [] do
-      IO.puts  IEx.color(:error, "No specs for #{inspect module} have been found")
+      nospecs(inspect module)
     end
 
-    :ok
+    dont_display_result
   end
 
   @doc false
@@ -219,10 +226,10 @@ defmodule IEx.Introspection do
     end
 
     if specs == [] do
-      IO.puts  IEx.color(:error, "No specs for #{inspect module}.#{function} have been found")
+      nospecs("#{inspect module}.#{function}")
     end
 
-    :ok
+    dont_display_result
   end
 
   @doc false
@@ -234,10 +241,10 @@ defmodule IEx.Introspection do
     end
 
     if specs == [] do
-      IO.puts  IEx.color(:error, "No specs for #{inspect module}.#{function} have been found")
+      nodocs("#{inspect module}.#{function}")
     end
 
-    :ok
+    dont_display_result
   end
 
   defp beam_specs(module) do
@@ -258,5 +265,11 @@ defmodule IEx.Introspection do
       IO.puts IEx.color(:info, "@#{kind} #{binary}")
     end
     true
+  end
+
+  defp nospecs(for), do: nodocs(for, "specification")
+  defp notypes(for), do: nodocs(for, "type information")
+  defp nodocs(for, type // "documentation") do
+    IO.puts IEx.color(:error, "No #{type} for #{for} was found")
   end
 end

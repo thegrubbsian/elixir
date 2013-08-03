@@ -174,7 +174,7 @@ defmodule Kernel do
   defmacro left and right
 
   @doc """
-  Boolean exclusive-or. Arguments must be booleans. Returns true if and only if
+  Boolean exclusive-or. Arguments must be booleans. Returns `true` if and only if
   both arguments are different.
   Allowed in guard clauses.
 
@@ -203,8 +203,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Receives any argument and returns true if it is false
-  or nil. Returns false otherwise. Not allowed in guard
+  Receives any argument and returns `true` if it is `false`
+  or `nil`. Returns `false` otherwise. Not allowed in guard
   clauses.
 
   ## Examples
@@ -224,7 +224,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if left is less than right.
+  Returns `true` if left is less than right.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -238,7 +238,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if left is more than right.
+  Returns `true` if left is more than right.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -252,7 +252,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if left is less than or equal to right.
+  Returns `true` if left is less than or equal to right.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -266,7 +266,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if left is more than or equal to right.
+  Returns `true` if left is more than or equal to right.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -280,7 +280,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the two items are equal.
+  Returns `true` if the two items are equal.
 
   This operator considers 1 and 1.0 to be equal. For strict
   comparison, use `===` instead.
@@ -301,7 +301,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the two items are not equal.
+  Returns `true` if the two items are not equal.
 
   This operator considers 1 and 1.0 to be equal. For strict
   comparison, use `!==` instead.
@@ -321,7 +321,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the two items are strictly equal.
+  Returns `true` if the two items are strictly equal.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -338,7 +338,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the two items are strictly not equal.
+  Returns `true` if the two items are strictly not equal.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -603,15 +603,6 @@ defmodule Kernel do
   end
 
   @doc """
-  Converts the given number to a float. Allowed in guard clauses.
-  """
-  @spec float(number) :: float
-  def float(number) do
-    IO.write "[WARNING] Kernel.float is deprecated, please do an explicit conversion instead\n#{Exception.format_stacktrace}"
-    :erlang.float(number)
-  end
-
-  @doc """
   Returns a char list which corresponds to the text representation of the given float.
 
   ## Examples
@@ -626,7 +617,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the head of a list, raises badarg if the list is empty.
+  Returns the head of a list, raises `badarg` if the list is empty.
   """
   @spec hd(list) :: term
   def hd(list) do
@@ -694,7 +685,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the local node is alive; that is,
+  Returns `true` if the local node is alive; that is,
   if the node can be part of a distributed system.
   """
   @spec is_alive :: boolean
@@ -703,7 +694,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is an atom; otherwise returns false.
+  Returns `true` if `term` is an atom; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -713,7 +704,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a binary; otherwise returns false.
+  Returns `true` if `term` is a binary; otherwise returns `false`.
 
   A binary always contains a complete number of bytes.
 
@@ -725,7 +716,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a bitstring (including a binary); otherwise returns false.
+  Returns `true` if `term` is a bitstring (including a binary); otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -735,7 +726,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is either the atom `true` or the atom `false` (i.e. a boolean);
+  Returns `true` if `term` is either the atom `true` or the atom `false` (i.e. a boolean);
   otherwise returns false.
 
   Allowed in guard tests.
@@ -746,7 +737,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a floating point number; otherwise returns false.
+  Returns `true` if `term` is a floating point number; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -756,7 +747,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a function; otherwise returns false.
+  Returns `true` if `term` is a function; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -766,8 +757,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a function that can be applied with `arity` number of arguments;
-  otherwise returns false.
+  Returns `true` if `term` is a function that can be applied with `arity` number of arguments;
+  otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -777,7 +768,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is an integer; otherwise returns false.
+  Returns `true` if `term` is an integer; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -787,7 +778,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a list with zero or more elements; otherwise returns false.
+  Returns `true` if `term` is a list with zero or more elements; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -797,8 +788,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is either an integer or a floating point number;
-  otherwise returns false.
+  Returns `true` if `term` is either an integer or a floating point number;
+  otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -808,7 +799,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a pid (process identifier); otherwise returns false.
+  Returns `true` if `term` is a pid (process identifier); otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -818,7 +809,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a port identifier; otherwise returns false.
+  Returns `true` if `term` is a port identifier; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -828,7 +819,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a reference; otherwise returns false.
+  Returns `true` if `term` is a reference; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -838,7 +829,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a tuple; otherwise returns false.
+  Returns `true` if `term` is a tuple; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -1036,7 +1027,7 @@ defmodule Kernel do
 
   @doc """
   Returns an atom representing the name of the local node.
-  If the node is not alive, nonode@nohost is returned instead.
+  If the node is not alive, `nonode@nohost` is returned instead.
 
   Allowed in guard tests.
   """
@@ -1048,7 +1039,7 @@ defmodule Kernel do
   @doc """
   Returns the node where the given argument is located.
   The argument can be a pid, a reference, or a port.
-  If the local node is not alive, nonode@nohost is returned.
+  If the local node is not alive, `nonode@nohost` is returned.
 
   Allowed in guard tests.
   """
@@ -1100,7 +1091,7 @@ defmodule Kernel do
 
   @doc """
   Returns the size of the given argument, which must be a tuple
-  or a binary. If possible, please use `tuple_size` or `binary_size`.
+  or a binary. If possible, please use `tuple_size` or `byte_size`.
   """
   @spec size(tuple|binary) :: non_neg_integer
   def size(arg) do
@@ -1184,12 +1175,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns a binary which is the result of encoding the given term
+  Returns a binary which is the result of encoding the given `term`
   according to the Erlang external term format.
 
   This can be used for a variety of purposes, for example, writing a term
   to a file in an efficient way, or sending an Erlang term to some type
-  of communications channel not supported by distributed :
+  of communications channel not supported by distributed.
   """
   @spec term_to_binary(term) :: binary
   def term_to_binary(term) do
@@ -1211,7 +1202,7 @@ defmodule Kernel do
   end
 
   @doc """
-  A non-local return from a function. Check try/2 for more information.
+  A non-local return from a function. Check `try/2` for more information.
   """
   @spec throw(term) :: no_return
   def throw(term) do
@@ -1219,7 +1210,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the tail of a list. Raises ArgumentError if the list is empty.
+  Returns the tail of a list. Raises `ArgumentError` if the list is empty.
   """
   @spec tl(maybe_improper_list) :: maybe_improper_list
   def tl(list) do
@@ -1978,6 +1969,9 @@ defmodule Kernel do
   @doc """
   Defines an implementation for the given protocol. See
   `defprotocol/2` for examples.
+
+  It makes available the name of the protocol and of the module it's being
+  implemented for inside the @protocol attribute as a two-tuple.
   """
   defmacro defimpl(name, opts, do_block // []) do
     merged = Keyword.merge(opts, do_block)
@@ -2107,6 +2101,8 @@ defmodule Kernel do
       #=> #Function<...>
 
   """
+  @spec inspect(Inspect.t, Inspect.Opts.t) :: Inspect.Algebra.t
+  @spec inspect(Inspect.t, Keyword.t) :: String.t
   def inspect(arg, opts // [])
 
   def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and
@@ -2136,6 +2132,10 @@ defmodule Kernel do
       "foo"
 
   """
+
+  # If it is a binary at compilation time, simply return it.
+  defmacro to_binary(arg) when is_binary(arg), do: arg
+
   defmacro to_binary(arg) do
     quote do: Binary.Chars.to_binary(unquote(arg))
   end
@@ -2215,7 +2215,7 @@ defmodule Kernel do
   Match can also be used to filter or find a value in an enumerable:
 
       list = [{:a, 1}, {:b, 2}, {:a, 3}]
-      Enum.filter list, match?({:a, _}, _)
+      Enum.filter list, match?({:a, _}, &1)
 
   Guard clauses can also be given to the match:
 
@@ -2295,101 +2295,6 @@ defmodule Kernel do
   defp falsify_var(other, acc, _fun) do
     { other, acc }
   end
-
-  @doc """
-  Construct an anonymous function based on the given expression
-  or retrieve an existing one.
-
-  ## Function composition
-
-      iex> sum = function do
-      ...>   (x, y) -> x + y
-      ...> end
-      ...> sum.(1, 2)
-      3
-
-  Notice that a function needs to be invoked using the dot between
-  the function and the arguments.
-
-  Multiple clauses can be specified as in `case`, `receive` and
-  similar macros:
-
-      iex> sum = function do
-      ...>   x, y when y > 0 -> x + y
-      ...>   x, y -> x - y
-      ...> end
-      ...> sum.(1, 2)
-      3
-
-  All clauses must expect the same number of arguments.
-
-  ## Function retrieval
-
-  The `function` macro can also be used to retrieve local, imported
-  and remote functions.
-
-      # Retrieve local/import
-      iex> f = function(is_atom/1)
-      iex> f.(:foo)
-      true
-
-      # Retrieve remote
-      iex> f = function(Kernel.is_atom/1)
-      iex> f.(:foo)
-      true
-
-  In case a function needs to be dynamically retrieved based on its
-  module, name or arity, use `function/3` instead.
-
-  ## Shortcut syntax
-
-  In order to reduce verbosity, functions in Elixir can be written
-  using a shortcut syntax via `fn`:
-
-      Enum.map [1, 2, 3], fn x ->
-        x * 2
-      end
-
-  Not only is the example shorter, it solves ambiguity issues. Since
-  `do/end` always matches the furthest call, if we used the `function`
-  macro as below:
-
-      Enum.map [1, 2, 3], function do
-        x -> x * 2
-      end
-
-  It would be parsed as:
-
-      Enum.map([1, 2, 3], function) do
-        x -> x * 2
-      end
-
-  The stab shortcut syntax has the proper precedence:
-
-      Enum.map [1, 2, 3], fn
-        x -> x * 2
-      end
-
-  Which is handled as:
-
-      Enum.map([1, 2, 3], fn
-        x -> x * 2
-      end)
-
-  """
-  defmacro function(args)
-
-  @doc """
-  Retrieves a function with given name and arity from a module.
-
-  ## Examples
-
-      iex> f = function(Kernel, :is_atom, 1)
-      ...> f.(:foo)
-      true
-
-  """
-  defmacro function(module, function, arity)
 
   @doc """
   Matches the given expression against the match clauses.
@@ -3216,30 +3121,12 @@ defmodule Kernel do
     { call, line, [left] }
   end
 
-  defp pipeline_op(left, { call, line, args }=right) when is_list(args) do
-    case validate_pipeline_args(args) do
-      :error -> pipeline_error(right)
-      _ -> nil
-    end
+  defp pipeline_op(left, { call, line, args }) when is_list(args) do
     { call, line, [left|args] }
   end
 
-  defp pipeline_op(left, atom) when is_atom(atom) do
-    { { :., [], [left, atom] }, [], [] }
-  end
-
-  defp pipeline_op(_, other) do
-    pipeline_error(other)
-  end
-
-  defp validate_pipeline_args([]), do: nil
-  defp validate_pipeline_args([ {:&, _, _ } | _ ]), do: :error
-  defp validate_pipeline_args([_|t]) do
-    validate_pipeline_args(t)
-  end
-
-  defp pipeline_error(arg) do
-    raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{Macro.to_string arg}"
+  defp pipeline_op(_, arg) do
+    raise ArgumentError, message: "unsupported expression in pipeline |> operator: #{Macro.to_string arg}"
   end
 
   @doc """
@@ -3745,10 +3632,19 @@ defmodule Kernel do
       _else -> raise ArgumentError, message: "modifier must be one of: b, a, c"
     end
 
-    case mod do
-      ?b -> quote do: String.split(unquote(string))
-      ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
-      ?c -> quote do: lc(p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p))
+    case is_binary(string) do
+      true ->
+        case mod do
+          ?b -> String.split(string)
+          ?a -> lc p inlist String.split(string), do: binary_to_atom(p)
+          ?c -> lc p inlist String.split(string), do: :unicode.characters_to_list(p)
+        end
+      false ->
+        case mod do
+          ?b -> quote do: String.split(unquote(string))
+          ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
+          ?c -> quote do: lc(p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p))
+        end
     end
   end
 end

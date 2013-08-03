@@ -1,3 +1,52 @@
+# v0.10.1 (2013-08-03)
+
+* enhancements
+  * [Behaviour] Add support for `defmacrocallback/1`
+  * [Enum] Add `Enum.shuffle/1`
+  * [ExUnit] The `:trace` option now also reports run time for each test
+  * [ExUnit] Add support for `:color` to enable/disable ANSI coloring
+  * [IEx] Add the `clear` helper to clear the screen.
+  * [Kernel] Add support for `GenFSM.Behaviour`
+  * [Kernel] Functions now points to the module and function they were defined when inspected
+  * [Kernel] A documentation attached to a function that is never defined now prints warnings
+  * [List] Add `List.keysort/2`
+  * [Mix] `:test_helper` project configuration did not affect `mix test` and was therefore removed. A `test/test_helper.exs` file is still necessary albeit it doesn't need to be automatically required in each test file
+  * [Mix] Add manifests for yecc, leex and Erlang compilers, making it easier to detect dependencies in between compilers and providing a more useful clean behaviour
+  * [Mix] `mix help` now outputs information about the default mix task
+  * [Mix] Add `--no-deps-check` option to `mix run`, `mix compile` and friends to not check dependency status
+  * [Mix] Add support for `MIX_GIT_FORCE_HTTPS` system environment that forces HTTPS for known providers, useful when the regular git port is blocked. This configuration does not affect the `mix.lock` results
+  * [Mix] Allow coverage tool to be pluggable via the `:test_coverage` configuration
+  * [Mix] Add `mix cmd` as a convenience to run a command recursively in child apps in an umbrella application
+  * [Mix] Support `umbrella: true` in dependencies as a convenience for setting up umbrella path deps
+  * [Mix] `mix run` now behaves closer to the `elixir` command and properly mangles the ARGV
+  * [String] Add `Regex.scan/3` now supports capturing groups
+  * [String] Add `String.reverse/1`
+
+* bug fix
+  * [Behaviour] Ensure callbacks are stored in the definition order
+  * [CLI] Speed up boot time on Elixir .bat files
+  * [IEx] Reduce cases where IEx parser can get stuck
+  * [Kernel] Improve error messages when the use of an operator has no effect
+  * [Kernel] Fix a bug where warnings were not being generated when imported macros conflicted with local functions or macros
+  * [Kernel] Document that `on_definition` can only be a function as it is evaluated inside the function context
+  * [Kernel] Ensure `%w` sigils with no interpolation are fully expanded at compile time
+  * [Mix] `mix deps.update`, `mix deps.clean` and `mix deps.unlock` no longer change all dependencies unless `--all` is given
+  * [Mix] Always run ` mix loadpaths` on `mix app.start`, even if `--no-compile` is given
+  * [OptionParser] Do not add boolean flags to the end result if they were not given
+  * [OptionParser] Do not parse non-boolean flags as booleans when true or false are given
+  * [OptionParser] Ensure `:keep` and `:integer`|`:float` can be given together as options
+  * [OptionParser] Ensure `--no-flag` sets `:flag` to false when `:flag` is a registered boolean switch
+
+* deprecations
+  * [Kernel] `function(Mod.fun/arity)` and `function(fun/arity)` are deprecated in favor of `&Mod.fun/arity` and `&fun/arity`
+  * [Kernel] `function/3` is deprecated in favor of `Module.function/3`
+  * [Kernel] `Kernel.ParallelCompiler` now receives a set of callbacks instead of a single one
+  * [Mix] `:test_coverage` option now expect keywords arguments and the `--cover` flag is now treated as a boolean
+
+* backwards incompatible changes
+  * [Regex] `Regex.scan/3` now always returns a list of lists, normalizing the result, instead of list with mixed lists and binaries
+  * [System] `System.halt/2` was removed since the current Erlang implementation of such function is bugged
+
 # v0.10.0 (2013-07-15)
 
 * enhancements

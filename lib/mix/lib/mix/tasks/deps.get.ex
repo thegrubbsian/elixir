@@ -11,6 +11,7 @@ defmodule Mix.Tasks.Deps.Get do
   ## Command line options
 
   * `--no-compile` - skip compilation of dependencies
+  * `--no-deps-check` - skip dependency check
   * `--quiet` - do not output success message
 
   """
@@ -18,6 +19,8 @@ defmodule Mix.Tasks.Deps.Get do
   import Mix.Deps, only: [all: 2, by_name: 1, format_dep: 1, check_lock: 2, out_of_date?: 1]
 
   def run(args) do
+    Mix.Project.get! # Require the project to be available
+
     { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean, quiet: :boolean])
 
     if rest != [] do
@@ -41,38 +44,46 @@ defmodule Mix.Tasks.Deps.Get do
 
       unless opts[:no_compile] do
         Mix.Task.run("deps.compile", apps)
-        Mix.Task.run("deps.check", [])
+        unless opts[:no_deps_check], do: Mix.Task.run("deps.check", [])
       end
     end
   end
 
   defp deps_getter(dep, { acc, lock }) do
     shell = Mix.shell
-    dep = check_lock(dep, lock)
+    Mix.Dep[app: app, scm: scm, opts: opts] = dep = check_lock(dep, lock)
 
-    if out_of_date?(dep) do
-      Mix.Dep[app: app, scm: scm, opts: opts] = dep
-      shell.info "* Getting #{format_dep(dep)}"
+    cond do
+      # Path dependencies are specially handled because they cannot
+      # be fetched although they are always compiled afterwards
+      scm == Mix.SCM.Path ->
+        { dep, { [app|acc], lock } }
 
-      old  = lock[app]
-      opts = Keyword.put(opts, :lock, old)
+      # If the dependency is not available or we have a lock mismatch
+      out_of_date?(dep) ->
+        shell.info "* Getting #{format_dep(dep)}"
 
-      new =
-        if scm.checked_out?(opts) do
-          scm.update(opts)
+        old  = lock[app]
+        opts = Keyword.put(opts, :lock, old)
+
+        new =
+          if scm.checked_out?(opts) do
+            scm.update(opts)
+          else
+            scm.checkout(opts)
+          end
+
+        if new do
+          # Update the dependency returned so it is now
+          # available and nested dependencies can be fetched
+          { Mix.Deps.update(dep), { [app|acc], Keyword.put(lock, app, new) } }
         else
-          scm.checkout(opts)
+          { dep, { acc, lock } }
         end
 
-      if new do
-        # Update the dependency returned so it is now
-        # available and nested dependencies can be fetched
-        { Mix.Deps.update(dep), { [app|acc], Keyword.put(lock, app, new) } }
-      else
+      # The dependency is ok or has some other error
+      true ->
         { dep, { acc, lock } }
-      end
-    else
-      { dep, { acc, lock } }
     end
   end
 end

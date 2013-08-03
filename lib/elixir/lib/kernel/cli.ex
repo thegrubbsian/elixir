@@ -1,18 +1,17 @@
 defmodule Kernel.CLI do
-  @moduledoc """
-  Module responsible for controlling Elixir's CLI
-  """
+  @moduledoc false
 
   defrecord Config, commands: [], output: ".", compile: [],
                     halt: true, compiler_options: [], errors: []
 
-  # This is the API invoked by Elixir boot process.
-  @doc false
+  @doc """
+  This is the API invoked by Elixir boot process.
+  """
   def main(argv) do
     argv = lc arg inlist argv, do: :unicode.characters_to_binary(arg)
 
     { config, argv } = process_argv(argv, Kernel.CLI.Config.new)
-    :elixir_code_server.cast({ :argv, argv })
+    System.argv(argv)
 
     run fn ->
       command_results = Enum.map(Enum.reverse(config.commands), process_command(&1, config))
@@ -41,13 +40,6 @@ defmodule Kernel.CLI do
         at_exit(0)
         System.halt(0)
       end
-    rescue
-      exception ->
-        at_exit(1)
-        trace = System.stacktrace
-        IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-        IO.puts :stderr, Exception.format_stacktrace(trace)
-        System.halt(1)
     catch
       :exit, reason when is_integer(reason) ->
         at_exit(reason)
@@ -57,9 +49,7 @@ defmodule Kernel.CLI do
         System.halt(0)
       kind, reason ->
         at_exit(1)
-        trace = System.stacktrace
-        IO.puts :stderr, "** (#{kind}) #{inspect(reason)}"
-        IO.puts :stderr, Exception.format_stacktrace(trace)
+        print_error(kind, Exception.normalize(kind, reason), System.stacktrace)
         System.halt(1)
     end
   end
@@ -72,16 +62,9 @@ defmodule Kernel.CLI do
     lc hook inlist hooks do
       try do
         hook.(status)
-      rescue
-        exception ->
-          trace = System.stacktrace
-          IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          IO.puts :stderr, Exception.format_stacktrace(trace)
       catch
         kind, reason ->
-          trace = System.stacktrace
-          IO.puts :stderr, "** #{kind} #{inspect(reason)}"
-          IO.puts :stderr, Exception.format_stacktrace(trace)
+          print_error(kind, Exception.normalize(kind, reason), System.stacktrace)
       end
     end
 
@@ -98,6 +81,34 @@ defmodule Kernel.CLI do
       { new_list, new_config } ->
         callback.(new_list, new_config)
     end
+  end
+
+  defp print_error(:error, exception, trace) do
+    IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+    IO.puts :stderr, format_stacktrace(trace)
+  end
+
+  defp print_error(kind, reason, trace) do
+    IO.puts :stderr, "** #{kind} #{inspect(reason)}"
+    IO.puts :stderr, format_stacktrace(trace)
+  end
+
+  defp format_stacktrace(stack) do
+    Exception.format_stacktrace(prune_stacktrace(stack))
+  end
+
+  @elixir_internals [:elixir_compiler, :elixir_module]
+
+  defp prune_stacktrace([{ mod, _, _, _ }|t]) when mod in @elixir_internals do
+    prune_stacktrace(t)
+  end
+
+  defp prune_stacktrace([h|t]) do
+    [h|prune_stacktrace(t)]
+  end
+
+  defp prune_stacktrace([]) do
+    []
   end
 
   # Process shared options
@@ -328,7 +339,8 @@ defmodule Kernel.CLI do
     if files != [] do
       Code.compiler_options(config.compiler_options)
       Kernel.ParallelCompiler.files_to_path(files, config.output,
-        fn file -> IO.puts "Compiled #{file}" end)
+        each_file: fn file -> IO.puts "Compiled #{file}" end)
+      :ok
     else
       { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }
     end

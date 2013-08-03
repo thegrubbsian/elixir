@@ -13,10 +13,11 @@ defmodule Mix.UmbrellaTest do
         assert_received { :mix_shell, :info, ["==> foo"] }
         assert_received { :mix_shell, :info, ["Compiled lib/foo.ex"] }
         assert_received { :mix_shell, :info, ["Generated foo.app"] }
+
+        # Ensure foo was loaded and in the same env as Mix.env
+        assert_received { :mix_shell, :info, [":foo env is dev"] }
       end)
     end
-  after
-    purge [Umbrella.Mixfile, Foo, Foo.Mix, Bar, Bar.Mix]
   end
 
   test "dependency in umbrella" do
@@ -27,10 +28,7 @@ defmodule Mix.UmbrellaTest do
         assert_received { :mix_shell, :info, ["* foo [path: \"../foo\"]"] }
       end)
     end
-  after
-    purge [Umbrella.Mixfile, Foo.Mix, Bar.Mix]
   end
-
 
   test "list deps for umbrella as dependency" do
     in_fixture("umbrella_dep", fn ->
@@ -43,19 +41,14 @@ defmodule Mix.UmbrellaTest do
         refute_received { :mix_shell, :info, ["* some_dep [path: \"deps/some_dep\"]"] }
       end)
     end)
-  after
-    purge [UmbrellaDep.Mixfile, Umbrella.Mixfile]
   end
 
   test "compile for umbrella as dependency" do
     in_fixture "umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
-        Mix.Tasks.Deps.Compile.run []
+        Mix.Task.run "deps.compile"
         assert "hello world" == Bar.bar
       end)
     end
-  after
-    Mix.Project.pop
-    purge [UmbrellaDep.Mixfile, Umbrella.Mixfile, Foo, Foo.Mix, Bar, Bar.Mix]
   end
 end

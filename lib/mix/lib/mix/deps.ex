@@ -14,12 +14,55 @@ defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: ni
       `rebar.config` for rebar or the `Mix.Project` for Mix
   * `manager` - the project management, possible values: `:rebar` | `:mix` | `:make` | `nil`
   * `from` - path to the file where the dependency was defined
+
   """
 end
 
 defmodule Mix.Deps do
-  @moduledoc """
+  @moduledoc %B"""
   A module with common functions to work with dependencies.
+
+  Dependencies must be specified in the Mix application in the
+  following format:
+
+      { app :: atom, opts :: Keyword.t }
+      { app :: atom, requirement :: String.t, opts :: Keyword.t }
+
+  The application name must be an atom, the version requirement must
+  be a string according to the specification outline in `Mix.Version`
+  and opts is a keyword lists that may include options for the underlying
+  SCM or options used by Mix. Each set of options is documented below.
+
+  ## Mix options
+
+  * `:app` - Do not try to read the app file for this dependency
+  * `:env` - The environment to run the dependency on, defaults to :prod
+  * `:compile` - A command to compile the dependency, defaults to a mix,
+                 rebar or make command
+
+  ## Git options (`:git`)
+
+  * `:git`        - The git repository URI
+  * `:github`     - A shortcut for specifying git repos from github, uses `git:`
+  * `:ref`        - The reference to checkout (may be a branch, a commit sha or a tag)
+  * `:branch`     - The git branch to checkout
+  * `:tag`        - The git tag to checkout
+  * `:submodules` - When true, initialize submodules for the repo
+
+  ## Path options (`:path`)
+
+  * `:path` - The path for the dependency
+  * `:umbrella` - When true, sets a path dependency pointing to "../#{app}",
+                  sharing the same environment as the current application
+
+  ## Internal options
+
+  Those options are set internally by Mix and they can't be
+  overriden from the Mixfile:
+
+  * `:dest` - The destination path for the dependency
+  * `:lock` - The lock information retrieved from mix.lock
+
   """
 
   @doc """
@@ -27,8 +70,8 @@ defmodule Mix.Deps do
 
   ## Exceptions
 
-  This function raises an exception if the provided
-  dependency is in the wrong format.
+  This function raises an exception if any of the dependencies
+  provided in the project are in the wrong format.
   """
   def all do
     { deps, _ } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
@@ -36,8 +79,15 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Return all dependencies, but with a custom callback and
-  accumulator.
+  Maps and reduces over all dependencies, one by one.
+
+  This is useful in case you want to retrieve the dependency
+  tree for a project but process and change them along the way.
+  For example, `mix deps.get` uses it to get all dependencies
+  by first fetching the parent and then updating the tree as it goes.
+
+  The callback expects the current dependency and the accumulator
+  as arguments. The accumulator is returned as result.
   """
   def all(acc, callback) do
     { _deps, acc } = Mix.Deps.Converger.all(acc, callback)
@@ -45,7 +95,12 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Return all direct child dependencies.
+  Return all direct child dependencies for the current project.
+
+  ## Exceptions
+
+  This function raises an exception if any of the dependencies
+  provided in the project are in the wrong format.
   """
   defdelegate children(), to: Mix.Deps.Retriever
 
@@ -135,7 +190,10 @@ defmodule Mix.Deps do
     do: "the app file at #{Mix.Utils.relative_to_cwd(path)} is invalid"
 
   def format_status(Mix.Dep[status: { :invalidvsn, vsn }]),
-    do: "the dependency does not match the specified version, got #{vsn}"
+    do: "the app file contains an invalid version: #{inspect vsn}"
+
+  def format_status(Mix.Dep[status: { :nomatchvsn, vsn }, requirement: req]),
+    do: "the dependency does not match the requirement #{req}, got #{vsn}"
 
   def format_status(Mix.Dep[status: { :lockmismatch, _ }]),
     do: "lock mismatch: the dependency is out of date"

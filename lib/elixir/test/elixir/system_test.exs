@@ -1,7 +1,5 @@
 Code.require_file "test_helper.exs", __DIR__
 
-require :os, as: OS
-
 defmodule SystemTest do
   use ExUnit.Case, async: true
   import PathHelpers
@@ -19,7 +17,6 @@ defmodule SystemTest do
 
   if :file.native_name_encoding == :utf8 do
     test :cwd_with_utf8 do
-      import PathHelpers
       File.mkdir_p(tmp_path("héllò"))
 
       File.cd!(tmp_path("héllò"), fn ->
@@ -53,13 +50,13 @@ defmodule SystemTest do
 
   test :env do
     assert System.get_env("SYSTEM_ELIXIR_ENV_TEST_VAR") == nil
-    System.put_env('SYSTEM_ELIXIR_ENV_TEST_VAR', 'SAMPLE')
+    System.put_env("SYSTEM_ELIXIR_ENV_TEST_VAR", "SAMPLE")
     assert System.get_env("SYSTEM_ELIXIR_ENV_TEST_VAR") == "SAMPLE"
   end
 
   test :cmd do
-    assert is_binary(System.cmd "cd .")
-    assert is_list(System.cmd 'cd .')
+    assert is_binary(System.cmd "echo hello")
+    assert is_list(System.cmd 'echo hello')
   end
 
   test :find_executable_with_binary do

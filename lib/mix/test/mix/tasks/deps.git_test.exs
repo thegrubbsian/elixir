@@ -58,19 +58,18 @@ defmodule Mix.Tasks.DepsGitTest do
       File.touch!("deps/git_repo/ebin/.compile.elixir", { { 2010, 4, 17 }, { 14, 0, 0 } })
       Mix.Task.clear
 
-      Mix.Tasks.Deps.Update.run []
+      Mix.Tasks.Deps.Update.run ["--all"]
       message = "* Updating git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
 
-      Mix.Tasks.Deps.Clean.run []
+      Mix.Tasks.Deps.Clean.run ["--all"]
       message = "* Cleaning git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
       refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
     end
   after
-    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -93,7 +92,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/mix.exs")
     end
   after
-    purge [GitRepo, GitRepo.Mix, DepsOnGitRepo.Mix]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -107,7 +106,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
       # We can compile just fine
       Mix.Task.clear
-      Mix.Tasks.Run.run ["1+2"]
+      Mix.Tasks.Run.run ["-e", "1+2"]
 
       # Now let's add a submodules option
       Mix.Project.pop
@@ -120,7 +119,7 @@ defmodule Mix.Tasks.DepsGitTest do
       end
     end
   after
-    purge [GitRepo, GitRepo.Mix, A, B, C]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -150,7 +149,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
   after
-    purge [GitRepo, GitRepo.Mix, A, B, C]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -173,7 +172,7 @@ defmodule Mix.Tasks.DepsGitTest do
       refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
   after
-    purge [GitRepo, GitRepo.Mix, A, B, C]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -225,11 +224,11 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ last
 
-      Mix.Tasks.Deps.Clean.run []
+      Mix.Tasks.Deps.Clean.run ["--all"]
       refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
       assert File.read!("mix.lock") =~ last
 
-      Mix.Tasks.Deps.Clean.run ["--unlock"]
+      Mix.Tasks.Deps.Clean.run ["--unlock", "--all"]
       refute File.read!("mix.lock") =~ last
     end
   after
@@ -284,7 +283,7 @@ defmodule Mix.Tasks.DepsGitTest do
       exception = assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
       end
-      assert exception.message =~ "command `git clone"
+      assert exception.message =~ "Command `git clone"
     end
   after
     Mix.Project.pop

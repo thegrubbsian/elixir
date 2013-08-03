@@ -11,7 +11,7 @@ handle({ _, Meta, Args } = Original, S, Opt) when is_list(Args), S#elixir_scope.
     { Call, Def, SC } when Def /= [] ->
       Final = validate(Meta, Def, SC),
       Block = setelement(3, Original, Call),
-      elixir_translator:translate_fn(Meta, [{ Final, Meta, Block }], SC);
+      elixir_fn:fn(Meta, [{ Final, Meta, Block }], SC);
     _ -> error
   end;
 
@@ -41,7 +41,7 @@ convert([{'|', Meta, [_, _] = Args}|T], S, allow_tail, CallAcc, DefAcc) ->
   { NewArgs, NewDef, NewS } = convert(Args, S, allow_tail, [], DefAcc),
   convert(T, NewS, allow_tail, [{ '|', Meta, NewArgs}|CallAcc], NewDef);
 
-convert([{'&', Meta, [Pos]}|T], S, Opt, CallAcc, DefAcc) ->
+convert([{'&', Meta, [Pos]}|T], S, Opt, CallAcc, DefAcc) when is_integer(Pos) ->
   case lists:keyfind(Pos, 1, DefAcc) of
     false ->
       { Var, SC } = elixir_scope:build_ex_var(?line(Meta), S),
