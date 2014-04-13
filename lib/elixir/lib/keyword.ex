@@ -36,6 +36,7 @@ defmodule Keyword do
   """
   @spec from_enum(Enum.t) :: t
   def from_enum(enum) do
+    IO.write :stderr, "Keyword.from_enum/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
     Enum.to_list(enum)
   end
 
@@ -59,8 +60,11 @@ defmodule Keyword do
   end
 
   @doc """
-  Creates a Keyword from an enumerable. Similar to dicts,
-  duplicated entries are removed, the latest one prevails.
+  Creates a keyword from an enumerable.
+
+  Duplicated entries are removed, the latest one prevails.
+  I.e. differently from `Enum.into(enumerable, [])`,
+  `Keyword.new(enumerable)` guarantees the keys are unique.
 
   ## Examples
 
@@ -76,9 +80,11 @@ defmodule Keyword do
   end
 
   @doc """
-  Creates a Keyword from an enumerable with the
-  help of the transformation function. Duplicated
-  entries are removed, the latest one prevails.
+  Creates a keyword from an enumerable via the transformation function.
+
+  Duplicated entries are removed, the latest one prevails.
+  I.e. differently from `Enum.into(enumerable, [], fun)`,
+  `Keyword.new(enumerable, fun)` guarantees the keys are unique.
 
   ## Examples
 
@@ -116,7 +122,7 @@ defmodule Keyword do
   """
   @spec get(t, key) :: value
   @spec get(t, key, value) :: value
-  def get(keywords, key, default \\ nil) when is_atom(key) do
+  def get(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> value
       false -> default
@@ -137,7 +143,7 @@ defmodule Keyword do
 
   """
   @spec fetch(t, key) :: value
-  def fetch(keywords, key) when is_atom(key) do
+  def fetch(keywords, key) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> { :ok, value }
       false -> :error
@@ -154,14 +160,14 @@ defmodule Keyword do
       1
 
       iex> Keyword.fetch!([a: 1], :b)
-      ** (KeyError) key not found: :b
+      ** (KeyError) key :b not found in: [a: 1]
 
   """
   @spec fetch!(t, key) :: value | no_return
-  def fetch!(keywords, key) when is_atom(key) do
+  def fetch!(keywords, key) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> value
-      false -> raise(KeyError, key: key)
+      false -> raise(KeyError, key: key, term: keywords)
     end
   end
 
@@ -175,8 +181,8 @@ defmodule Keyword do
 
   """
   @spec get_values(t, key) :: [value]
-  def get_values(keywords, key) when is_atom(key) do
-    lc { k, v } inlist keywords, key == k, do: v
+  def get_values(keywords, key) when is_list(keywords) and is_atom(key) do
+    for { k, v } <- keywords, key == k, do: v
   end
 
   @doc """
@@ -193,8 +199,8 @@ defmodule Keyword do
 
   """
   @spec keys(t) :: [key]
-  def keys(keywords) do
-    lc { key, _ } inlist keywords, do: key
+  def keys(keywords) when is_list(keywords) do
+    for { key, _ } <- keywords, do: key
   end
 
   @doc """
@@ -207,8 +213,8 @@ defmodule Keyword do
 
   """
   @spec values(t) :: [value]
-  def values(keywords) do
-    lc { _, value } inlist keywords, do: value
+  def values(keywords) when is_list(keywords) do
+    for { _, value } <- keywords, do: value
   end
 
   @doc """
@@ -228,8 +234,8 @@ defmodule Keyword do
 
   """
   @spec delete(t, key, value) :: t
-  def delete(keywords, key, value) when is_atom(key) do
-    lc { k, v } = tuple inlist keywords, key != k or value != v, do: tuple
+  def delete(keywords, key, value) when is_list(keywords) and is_atom(key) do
+    for { k, v } = tuple <- keywords, key != k or value != v, do: tuple
   end
 
   @doc """
@@ -251,8 +257,8 @@ defmodule Keyword do
 
   """
   @spec delete(t, key) :: t
-  def delete(keywords, key) when is_atom(key) do
-    lc { k, _ } = tuple inlist keywords, key != k, do: tuple
+  def delete(keywords, key) when is_list(keywords) and is_atom(key) do
+    for { k, _ } = tuple <- keywords, key != k, do: tuple
   end
 
   @doc """
@@ -269,7 +275,7 @@ defmodule Keyword do
 
   """
   @spec delete_first(t, key) :: t
-  def delete_first(keywords, key) when is_atom(key) do
+  def delete_first(keywords, key) when is_list(keywords) and is_atom(key) do
     :lists.keydelete(key, 1, keywords)
   end
 
@@ -289,7 +295,7 @@ defmodule Keyword do
 
   """
   @spec put(t, key, value) :: t
-  def put(keywords, key, value) when is_atom(key) do
+  def put(keywords, key, value) when is_list(keywords) and is_atom(key) do
     [{key, value}|delete(keywords, key)]
   end
 
@@ -298,6 +304,7 @@ defmodule Keyword do
   already exists.
 
   ## Examples
+
       iex> Keyword.put_new([a: 1], :b, 2)
       [b: 2, a: 1]
 
@@ -306,7 +313,7 @@ defmodule Keyword do
 
   """
   @spec put_new(t, key, value) :: t
-  def put_new(keywords, key, value) when is_atom(key) do
+  def put_new(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, _ } -> keywords
       false -> [{key, value}|keywords]
@@ -340,7 +347,7 @@ defmodule Keyword do
   """
   @spec merge(t, t) :: t
   def merge(d1, d2) when is_list(d1) and is_list(d2) do
-    d2 ++ lc({ k, _ } = tuple inlist d1, not has_key?(d2, k), do: tuple)
+    d2 ++ for({ k, _ } = tuple <- d1, not has_key?(d2, k), do: tuple)
   end
 
   @doc """
@@ -351,7 +358,7 @@ defmodule Keyword do
 
       iex> Keyword.merge([a: 1, b: 2], [a: 3, d: 4], fn (_k, v1, v2) ->
       ...>  v1 + v2
-      iex> end)
+      ...> end)
       [a: 4, b: 2, d: 4]
 
   """
@@ -381,7 +388,7 @@ defmodule Keyword do
 
   """
   @spec has_key?(t, key) :: boolean
-  def has_key?(keywords, key) when is_atom(key) do
+  def has_key?(keywords, key) when is_list(keywords) and is_atom(key) do
     :lists.keymember(key, 1, keywords)
   end
 
@@ -395,20 +402,24 @@ defmodule Keyword do
       [a: 2]
 
       iex> Keyword.update!([a: 1], :b, &(&1 * 2))
-      ** (KeyError) key not found: :b
+      ** (KeyError) key :b not found in: [a: 1]
 
   """
   @spec update!(t, key, (value -> value)) :: t | no_return
-  def update!([{key, value}|keywords], key, fun) do
+  def update!(keywords, key, fun) do
+    update!(keywords, key, fun, keywords)
+  end
+
+  defp update!([{key, value}|keywords], key, fun, _dict) do
     [{key, fun.(value)}|delete(keywords, key)]
   end
 
-  def update!([{_, _} = e|keywords], key, fun) do
-    [e|update!(keywords, key, fun)]
+  defp update!([{_, _} = e|keywords], key, fun, dict) do
+    [e|update!(keywords, key, fun, dict)]
   end
 
-  def update!([], key, _fun) when is_atom(key) do
-    raise(KeyError, key: key)
+  defp update!([], key, _fun, dict) when is_atom(key) do
+    raise(KeyError, key: key, term: dict)
   end
 
   @doc """
@@ -452,10 +463,10 @@ defmodule Keyword do
       { [a: 1, c: 3, a: 5], [b: 2, d: 4] }
 
   """
-  def split(dict, keys) do
+  def split(keywords, keys) when is_list(keywords) do
     acc = { [], [] }
 
-    { take, drop } = Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
+    { take, drop } = Enum.reduce keywords, acc, fn({ k, v }, { take, drop }) ->
       case k in keys do
         true  -> { [{k, v}|take], drop }
         false -> { take, [{k, v}|drop] }
@@ -480,8 +491,8 @@ defmodule Keyword do
       [a: 1, c: 3, a: 5]
 
   """
-  def take(dict, keys) do
-    lc { k, _ } = tuple inlist dict, k in keys, do: tuple
+  def take(keywords, keys) when is_list(keywords) do
+    for { k, _ } = tuple <- keywords, k in keys, do: tuple
   end
 
   @doc """
@@ -499,8 +510,8 @@ defmodule Keyword do
       [a: 1, c: 3, a: 5]
 
   """
-  def drop(dict, keys) do
-    lc { k, _ } = tuple inlist dict, not k in keys, do: tuple
+  def drop(keywords, keys) when is_list(keywords) do
+    for { k, _ } = tuple <- keywords, not k in keys, do: tuple
   end
 
   @doc """
@@ -528,8 +539,8 @@ defmodule Keyword do
       {1,[]}
 
   """
-  def pop(dict, key, default \\ nil) do
-    { get(dict, key, default), delete(dict, key) }
+  def pop(keywords, key, default \\ nil) when is_list(keywords) do
+    { get(keywords, key, default), delete(keywords, key) }
   end
 
   @doc """
@@ -557,7 +568,7 @@ defmodule Keyword do
       {1,[a: 2]}
 
   """
-  def pop_first(dict, key, default \\ nil) do
-    { get(dict, key, default), delete_first(dict, key) }
+  def pop_first(keywords, key, default \\ nil) when is_list(keywords) do
+    { get(keywords, key, default), delete_first(keywords, key) }
   end
 end

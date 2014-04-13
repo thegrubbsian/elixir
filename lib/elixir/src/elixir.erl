@@ -21,8 +21,8 @@ start(_Type, _Args) ->
   %% Set the shell to unicode so printing inside scripts work
   %% Those can take a while, so let's do it in a new process
   spawn(fun() ->
-    io:setopts(standard_io, [binary,{encoding,unicode}]),
-    io:setopts(standard_error, [binary,{encoding,unicode}])
+    io:setopts(standard_io, [binary,{encoding,utf8}]),
+    io:setopts(standard_error, [{unicode,true}])
   end),
   elixir_sup:start_link().
 
@@ -158,11 +158,11 @@ string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_b
     { ok, _Line, Tokens } ->
       try elixir_parser:parse(Tokens) of
         { ok, Forms } -> { ok, Forms };
-        { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
+        { error, { Line, _, [Error, Token] } } -> { error, { Line, to_binary(Error), to_binary(Token) } }
       catch
-        { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
+        { error, { Line, _, [Error, Token] } } -> { error, { Line, to_binary(Error), to_binary(Token) } }
       end;
-    { error, Reason, _Rest, _SoFar } -> { error, Reason }
+    { error, { Line, Error, Token }, _Rest, _SoFar } -> { error, { Line, to_binary(Error), to_binary(Token) } }
   end.
 
 'string_to_quoted!'(String, StartLine, File, Opts) ->
@@ -172,3 +172,6 @@ string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_b
     { error, { Line, Error, Token } } ->
       elixir_errors:parse_error(Line, File, Error, Token)
   end.
+
+to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
+to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom, utf8).

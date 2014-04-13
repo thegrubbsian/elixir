@@ -130,10 +130,6 @@ defmodule KernelTest do
     assert apply(fn x -> x * 2 end, [2]) == 4
   end
 
-  test :__MODULE__ do
-    assert __MODULE__ == :"Elixir.KernelTest"
-  end
-
   test :function_from___ENV__ do
     assert __ENV__.function == { :test_function_from___ENV__, 1 }
   end
@@ -159,6 +155,21 @@ defmodule KernelTest do
     x = 1
     assert binding() == [x: 1]
     refute binding() == [x: 2]
+  end
+
+  defmodule User do
+    defstruct name: "jose"
+  end
+
+  test :struct do
+    assert struct(User) == %User{name: "jose"}
+
+    user = struct(User, name: "eric")
+    assert user == %User{ name: "eric" }
+
+    assert struct(user, unknown: "key") == user
+    assert struct(user, name: "jose") == %User{ name: "jose" }
+    assert struct(user, name: "other") == %User{ name: "other" }
   end
 
   defmodule Conversions do

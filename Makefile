@@ -1,5 +1,5 @@
 REBAR := rebar
-ELIXIRC := bin/elixirc --verbose --ignore-module-conflict $(ELIXIRC_OPTS)
+ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
@@ -11,7 +11,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip release_erl
+.PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip
 .NOTPARALLEL: compile
 
 #==> Templates
@@ -125,18 +125,17 @@ docs: compile ../ex_doc/bin/ex_doc
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
 	@ false
 
+build_info:
+	$(ELIXIRC) lib/elixir/lib/system.ex -o lib/elixir/ebin
+
 release_zip: compile
 	rm -rf v$(VERSION).zip
-	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md rel VERSION
+	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md VERSION
 
 release_docs: docs
 	cd ../docs
 	rm -rf ../docs/master
 	mv docs ../docs/master
-
-release_erl: compile
-	$(Q) rm -rf rel/elixir
-	$(Q) cd rel && ../rebar generate
 
 #==> Tests tasks
 

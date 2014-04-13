@@ -29,7 +29,7 @@ defmodule EExText.Compiled do
     try do
       :erlang.error "failed"
     catch
-      :error, _, stack -> stack
+      :error, _ -> System.stacktrace
     end
   end
 end
@@ -44,6 +44,9 @@ end
 
 defmodule EExTest do
   use ExUnit.Case, async: true
+
+  doctest EEx
+  doctest EEx.AssignsEngine
 
   test "evaluates simple string" do
     assert_eval "foo bar", "foo bar"
@@ -342,6 +345,26 @@ foo
           [file: 'unknown', line: 24]
         }
       }
+  end
+
+  defmodule TestEngine do
+    @behaviour EEx.Engine
+
+    def handle_body(body) do
+      { :wrapped, body }
+    end
+
+    def handle_text(buffer, text) do
+      EEx.Engine.handle_text(buffer, text)
+    end
+
+    def handle_expr(buffer, mark, expr) do
+      EEx.Engine.handle_expr(buffer, mark, expr)
+    end
+  end
+
+  test "calls handle_body" do
+    assert { :wrapped, "foo" } = EEx.eval_string("foo", [], engine: TestEngine)
   end
 
   defp assert_eval(expected, actual) do

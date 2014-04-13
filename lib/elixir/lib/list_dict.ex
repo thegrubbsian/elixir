@@ -15,27 +15,24 @@ defmodule ListDict do
   """
   def new, do: []
 
-  @doc """
-  Creates a new `ListDict` from the given pairs.
-  """
+  @doc false
   def new(pairs) do
+    IO.write :stderr, "ListDict.new/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
     Enum.to_list pairs
   end
 
-  @doc """
-  Creates a new `ListDict` from the given pairs
-  via the given transformation function.
-  """
+  @doc false
   def new(list, transform) when is_function(transform) do
+    IO.write :stderr, "ListDict.new/2 is deprecated, please use Enum.into/3 instead\n#{Exception.format_stacktrace}"
     Enum.map list, transform
   end
 
   def keys(dict) do
-    lc { key, _ } inlist dict, do: key
+    for { key, _ } <- dict, do: key
   end
 
   def values(dict) do
-    lc { _, value } inlist dict, do: value
+    for { _, value } <- dict, do: value
   end
 
   def size(dict) do
@@ -60,7 +57,7 @@ defmodule ListDict do
   def fetch!(dict, key) do
     case fetch(dict, key) do
       { :ok, value } -> value
-      :error -> raise(KeyError, key: key)
+      :error -> raise(KeyError, key: key, term: dict)
     end
   end
 
@@ -105,23 +102,27 @@ defmodule ListDict do
   end
 
   def take(dict, keys) do
-    lc { k, _ } = tuple inlist dict, k in keys, do: tuple
+    for { k, _ } = tuple <- dict, k in keys, do: tuple
   end
 
   def drop(dict, keys) do
-    lc { k, _ } = tuple inlist dict, not k in keys, do: tuple
+    for { k, _ } = tuple <- dict, not k in keys, do: tuple
   end
 
-  def update!([{key, value}|dict], key, fun) do
-    [{key, fun.(value)}|delete(dict, key)]
+  def update!(list, key, fun) do
+    update!(list, key, fun, list)
   end
 
-  def update!([{_, _} = e|dict], key, fun) do
-    [e|update!(dict, key, fun)]
+  defp update!([{key, value}|list], key, fun, _dict) do
+    [{key, fun.(value)}|delete(list, key)]
   end
 
-  def update!([], key, _fun) do
-    raise(KeyError, key: key)
+  defp update!([{_, _} = e|list], key, fun, dict) do
+    [e|update!(list, key, fun, dict)]
+  end
+
+  defp update!([], key, _fun, dict) do
+    raise(KeyError, key: key, term: dict)
   end
 
   def update([{key, value}|dict], key, _initial, fun) do
@@ -136,12 +137,16 @@ defmodule ListDict do
     [{key, initial}]
   end
 
-  def empty(_dict), do: []
+  def empty(_dict) do
+    IO.write :stderr, "ListDict.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
+    []
+  end
 
   def equal?(dict, other) do
     :lists.keysort(1, dict) === :lists.keysort(1, other)
   end
 
+  @doc false
   def reduce(_,           { :halt, acc }, _fun),   do: { :halted, acc }
   def reduce(list,        { :suspend, acc }, fun), do: { :suspended, acc, &reduce(list, &1, fun) }
   def reduce([],          { :cont, acc }, _fun),   do: { :done, acc }

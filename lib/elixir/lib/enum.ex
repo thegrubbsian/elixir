@@ -144,8 +144,8 @@ defmodule Enum do
   Some particular types, like dictionaries, yield a specific format on
   enumeration. For dicts, the argument is always a `{ key, value }` tuple:
 
-      iex> dict = HashDict.new [a: 1, b: 2]
-      iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end) |> Enum.sort
+      iex> dict = %{a: 1, b: 2}
+      iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end)
       [a: 2, b: 4]
 
   Note that the functions in the `Enum` module are eager: they always start
@@ -202,6 +202,7 @@ defmodule Enum do
 
       iex> Enum.all?([1, 2, 3])
       true
+
       iex> Enum.all?([1, nil, 3])
       false
 
@@ -238,6 +239,7 @@ defmodule Enum do
 
       iex> Enum.any?([false, false, false])
       false
+
       iex> Enum.any?([false, true, false])
       true
 
@@ -265,10 +267,13 @@ defmodule Enum do
 
       iex> Enum.at([2, 4, 6], 0)
       2
+
       iex> Enum.at([2, 4, 6], 2)
       6
+
       iex> Enum.at([2, 4, 6], 4)
       nil
+
       iex> Enum.at([2, 4, 6], 4, :none)
       :none
 
@@ -305,10 +310,13 @@ defmodule Enum do
 
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 2)
       [[1, 2], [3, 4], [5, 6]]
+
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2)
       [[1, 2, 3], [3, 4, 5]]
+
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2, [7])
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
+
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 3, [])
       [[1, 2, 3], [4, 5, 6]]
 
@@ -412,11 +420,6 @@ defmodule Enum do
 
   def count(collection) do
     case Enumerable.count(collection) do
-      value when is_integer(value) ->
-        IO.write "Expected #{inspect Enumerable.impl_for(collection)}.count/1 to return " <>
-                 "{ :ok, boolean } if pre-calculated, otherwise { :error, module }, got " <>
-                 "an integer\n#{Exception.format_stacktrace}"
-        value
       { :ok, value } when is_integer(value) ->
         value
       { :error, module } ->
@@ -431,6 +434,7 @@ defmodule Enum do
   `fun` returns `true`.
 
   ## Examples
+
       iex> Enum.count([1, 2, 3, 4, 5], fn(x) -> rem(x, 2) == 0 end)
       2
 
@@ -454,10 +458,13 @@ defmodule Enum do
 
       iex> Enum.drop([1, 2, 3], 2)
       [3]
+
       iex> Enum.drop([1, 2, 3], 10)
       []
+
       iex> Enum.drop([1, 2, 3], 0)
       [1,2,3]
+
       iex> Enum.drop([1, 2, 3], -1)
       [1,2]
 
@@ -488,6 +495,7 @@ defmodule Enum do
 
       iex> Enum.drop_while([1, 2, 3, 4, 5], fn(x) -> x < 3 end)
       [3,4,5]
+
   """
   @spec drop_while(t, (element -> as_boolean(term))) :: list
   def drop_while(collection, fun) when is_list(collection) do
@@ -533,6 +541,7 @@ defmodule Enum do
 
       iex> Enum.empty?([])
       true
+
       iex> Enum.empty?([1, 2, 3])
       false
 
@@ -558,8 +567,10 @@ defmodule Enum do
 
       iex> Enum.fetch([2, 4, 6], 0)
       { :ok, 2 }
+
       iex> Enum.fetch([2, 4, 6], 2)
       { :ok, 6 }
+
       iex> Enum.fetch([2, 4, 6], 4)
       :error
 
@@ -626,7 +637,7 @@ defmodule Enum do
   """
   @spec filter(t, (element -> as_boolean(term))) :: list
   def filter(collection, fun) when is_list(collection) do
-    lc item inlist collection, fun.(item), do: item
+    for item <- collection, fun.(item), do: item
   end
 
   def filter(collection, fun) do
@@ -645,7 +656,7 @@ defmodule Enum do
   """
   @spec filter_map(t, (element -> as_boolean(term)), (element -> element)) :: list
   def filter_map(collection, filter, mapper) when is_list(collection) do
-    lc item inlist collection, filter.(item), do: mapper.(item)
+    for item <- collection, filter.(item), do: mapper.(item)
   end
 
   def filter_map(collection, filter, mapper) do
@@ -807,8 +818,10 @@ defmodule Enum do
 
       iex> Enum.intersperse([1, 2, 3], 0)
       [1, 0, 2, 0, 3]
+
       iex> Enum.intersperse([1], 0)
       [1]
+
       iex> Enum.intersperse([], 0)
       []
 
@@ -827,6 +840,70 @@ defmodule Enum do
   end
 
   @doc """
+  Inserts the given enumerable into a collectable.
+
+  ## Examples
+
+      iex> Enum.into([1, 2], [0])
+      [0, 1, 2]
+
+      iex> Enum.into([a: 1, b: 2], %{})
+      %{a: 1, b: 2}
+
+  """
+  @spec into(Enumerable.t, Collectable.t) :: Collectable.t
+  def into(collection, list) when is_list(list) do
+    list ++ to_list(collection)
+  end
+
+  def into(collection, %{} = map) when is_list(collection) and (map_size(map) == 0) do
+    :maps.from_list(collection)
+  end
+
+  def into(collection, collectable) do
+    { initial, fun } = Collectable.into(collectable)
+    into(collection, initial, fun, fn x, acc ->
+      fun.(acc, { :cont, x })
+    end)
+  end
+
+  @doc """
+  Inserts the given enumerable into a collectable
+  according to the transformation function.
+
+  ## Examples
+
+      iex> Enum.into([2, 3], [3], fn x -> x * 3 end)
+      [3, 6, 9]
+
+  """
+  @spec into(Enumerable.t, Collectable.t, (term -> term)) :: Collectable.t
+
+  def into(collection, list, transform) when is_list(list) and is_function(transform, 1) do
+    list ++ map(collection, transform)
+  end
+
+  def into(collection, collectable, transform) when is_function(transform, 1) do
+    { initial, fun } = Collectable.into(collectable)
+    into(collection, initial, fun, fn x, acc ->
+      fun.(acc, { :cont, transform.(x) })
+    end)
+  end
+
+  defp into(collection, initial, fun, callback) do
+    try do
+      reduce(collection, initial, callback)
+    catch
+      kind, reason ->
+        stacktrace = System.stacktrace
+        fun.(initial, :halt)
+        :erlang.raise(kind, reason, stacktrace)
+    else
+      acc -> fun.(acc, :done)
+    end
+  end
+
+  @doc """
   Joins the given `collection` according to `joiner`.
   `joiner` can be either a binary or a list and the
   result will be of the same type as `joiner`. If
@@ -840,6 +917,7 @@ defmodule Enum do
 
       iex> Enum.join([1, 2, 3])
       "123"
+
       iex> Enum.join([1, 2, 3], " = ")
       "1 = 2 = 3"
 
@@ -872,7 +950,7 @@ defmodule Enum do
   """
   @spec map(t, (element -> any)) :: list
   def map(collection, fun) when is_list(collection) do
-    lc item inlist collection, do: fun.(item)
+    for item <- collection, do: fun.(item)
   end
 
   def map(collection, fun) do
@@ -893,6 +971,7 @@ defmodule Enum do
 
       iex> Enum.map_join([1, 2, 3], &(&1 * 2))
       "246"
+
       iex> Enum.map_join([1, 2, 3], " = ", &(&1 * 2))
       "2 = 4 = 6"
 
@@ -1000,6 +1079,7 @@ defmodule Enum do
 
       iex> Enum.member?(1..10, 5)
       true
+
       iex> Enum.member?([:a, :b, :c], :d)
       false
 
@@ -1011,17 +1091,12 @@ defmodule Enum do
 
   def member?(collection, value) do
     case Enumerable.member?(collection, value) do
-      value when is_boolean(value) ->
-        IO.write "Expected #{inspect Enumerable.impl_for(collection)}.member?/2 to return " <>
-                 "{ :ok, boolean } if faster than linear, otherwise { :error, __MODULE__ }, " <>
-                 "got a boolean\n#{Exception.format_stacktrace}"
-        value
       { :ok, value } when is_boolean(value) ->
         value
       { :error, module } ->
         module.reduce(collection, { :cont, false }, fn
           v, _ when v === value -> { :halt, true }
-          _, _ -> { :cont, false }
+          _, _                  -> { :cont, false }
         end) |> elem(1)
     end
   end
@@ -1080,6 +1155,22 @@ defmodule Enum do
   end
 
   @doc """
+  Returns the sum of all values.
+
+  Raises `ArithmeticError` if collection contains a non-numeric value.
+
+  ## Examples
+
+      iex> Enum.sum([1, 2, 3])
+      6
+
+  """
+  @spec sum(t) :: number
+  def sum(collection) do
+    reduce(collection, 0, &+/2)
+  end
+
+  @doc """
   Partitions `collection` into two collections, where the first one contains elements
   for which `fun` returns a truthy value, and the second one -- for which `fun`
   returns `false` or `nil`.
@@ -1102,6 +1193,27 @@ defmodule Enum do
       end)
 
     { :lists.reverse(acc1), :lists.reverse(acc2) }
+  end
+
+  @doc """
+  Splits `collection` into groups based on `fun`.
+
+  The result is a dict (by default a map) where each key is
+  a group and each value is a list of elements from `collection`
+  for which `fun` returned that group. Ordering is not necessarily
+  preserved.
+
+  ## Examples
+
+      iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1)
+      %{ 3 => ["cat", "ant"], 7 => ["buffalo"], 5 => ["dingo"] }
+
+  """
+  @spec group_by(t, (element -> any)) :: HashDict
+  def group_by(collection, dict \\ %{}, fun) do
+    reduce(collection, dict, fn(entry, categories) ->
+      Dict.update(categories, fun.(entry), [entry], &[entry|&1])
+    end)
   end
 
   @doc """
@@ -1172,7 +1284,7 @@ defmodule Enum do
   """
   @spec reject(t, (element -> as_boolean(term))) :: list
   def reject(collection, fun) when is_list(collection) do
-    lc item inlist collection, !fun.(item), do: item
+    for item <- collection, !fun.(item), do: item
   end
 
   def reject(collection, fun) do
@@ -1268,9 +1380,9 @@ defmodule Enum do
 
   ## Examples
 
-      iex(1)> Enum.shuffle([1, 2, 3])
+      iex> Enum.shuffle([1, 2, 3])
       [3, 2, 1]
-      iex(2)> Enum.shuffle([1, 2, 3])
+      iex> Enum.shuffle([1, 2, 3])
       [3, 1, 2]
 
   """
@@ -1361,12 +1473,14 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a sorted list of collection elements. Uses the merge sort algorithm.
+  Sorts the collection according to Elixir's term ordering.
+
+  Uses the merge sort algorithm.
 
   ## Examples
 
       iex> Enum.sort([3, 2, 1])
-      [1,2,3]
+      [1, 2, 3]
 
   """
   @spec sort(t) :: list
@@ -1379,14 +1493,27 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a list of collection elements sorted by the given function.
+  Sorts the collection by the given function.
 
-  Uses the merge sort algorithm.
+  This function uses the merge sort algorithm. The given function
+  must return false if the first argument is less than right one.
 
   ## Examples
 
       iex> Enum.sort([1, 2, 3], &(&1 > &2))
-      [3,2,1]
+      [3, 2, 1]
+
+  The sorting algorithm will be stable as long as the given function
+  returns true for values considered equal:
+
+      iex> Enum.sort ["some", "kind", "of", "monster"], &(byte_size(&1) <= byte_size(&2))
+      ["of", "some", "kind", "monster"]
+
+  If the function does not return true, the sorting is not stable and
+  the order of equal terms may be shuffled:
+
+      iex> Enum.sort ["some", "kind", "of", "monster"], &(byte_size(&1) < byte_size(&2))
+      ["of", "kind", "some", "monster"]
 
   """
   @spec sort(t, (element, element -> boolean)) :: list
@@ -1412,12 +1539,16 @@ defmodule Enum do
 
       iex> Enum.split([1, 2, 3], 2)
       { [1,2], [3] }
+
       iex> Enum.split([1, 2, 3], 10)
       { [1,2,3], [] }
+
       iex> Enum.split([1, 2, 3], 0)
       { [], [1,2,3] }
+
       iex> Enum.split([1, 2, 3], -1)
       { [1,2], [3] }
+
       iex> Enum.split([1, 2, 3], -5)
       { [], [1,2,3] }
 
@@ -1451,6 +1582,7 @@ defmodule Enum do
 
       iex> Enum.split_while([1, 2, 3, 4], fn(x) -> x < 3 end)
       { [1, 2], [3, 4] }
+
   """
   @spec split_while(t, (element -> as_boolean(term))) :: {list, list}
   def split_while(collection, fun) when is_list(collection) do
@@ -1481,10 +1613,13 @@ defmodule Enum do
 
       iex> Enum.take([1, 2, 3], 2)
       [1,2]
+
       iex> Enum.take([1, 2, 3], 10)
       [1,2,3]
+
       iex> Enum.take([1, 2, 3], 0)
       []
+
       iex> Enum.take([1, 2, 3], -1)
       [3]
 
@@ -1563,12 +1698,33 @@ defmodule Enum do
 
   """
   @spec to_list(t) :: [term]
-  def to_list(collection) when is_list collection do
+  def to_list(collection) when is_list(collection) do
     collection
   end
 
   def to_list(collection) do
     reverse(collection) |> :lists.reverse
+  end
+
+
+  @doc """
+  Traverses the given enumerable keeping its shape.
+
+  It also expects the enumerable to implement the `Collectable` protocol.
+
+  ## Examples
+
+      iex> Enum.traverse(%{a: 1, b: 2}, fn { k, v } -> { k, v * 2 } end)
+      %{a: 2, b: 4}
+
+  """
+  @spec traverse(Enumerable.t, (term -> term)) :: Collectable.t
+  def traverse(collection, transform) when is_list(collection) do
+    :lists.map(transform, collection)
+  end
+
+  def traverse(collection, transform) do
+    into(collection, Collectable.empty(collection), transform)
   end
 
   @doc """
@@ -1993,6 +2149,29 @@ defimpl Enumerable, for: List do
     do: { :error, __MODULE__ }
   def count(_list),
     do: { :error, __MODULE__ }
+end
+
+defimpl Enumerable, for: Map do
+  def reduce(map, acc, fun) do
+    do_reduce(:maps.to_list(map), acc, fun)
+  end
+
+  defp do_reduce(_,     { :halt, acc }, _fun),   do: { :halted, acc }
+  defp do_reduce(list,  { :suspend, acc }, fun), do: { :suspended, acc, &do_reduce(list, &1, fun) }
+  defp do_reduce([],    { :cont, acc }, _fun),   do: { :done, acc }
+  defp do_reduce([h|t], { :cont, acc }, fun),    do: do_reduce(t, fun.(h, acc), fun)
+
+  def member?(map, { key, value }) do
+    { :ok, match?({ :ok, ^value }, :maps.find(key, map)) }
+  end
+
+  def member?(_map, _other) do
+    { :ok, false }
+  end
+
+  def count(map) do
+    { :ok, map_size(map) }
+  end
 end
 
 defimpl Enumerable, for: Function do

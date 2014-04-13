@@ -144,7 +144,7 @@ defmodule IEx do
   results in
 
       $ iex
-      Erlang R16B [...]
+      Erlang 17 [...]
 
       hello world
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
@@ -172,7 +172,7 @@ defmodule IEx do
       ### now run the shell ###
 
       $ iex
-      Erlang R16B (erts-5.10.1) [...]
+      Erlang 17 (erts-5.10.1) [...]
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
@@ -383,6 +383,6 @@ defmodule IEx do
   end
 
   defp run_after_spawn do
-    lc fun inlist Enum.reverse(after_spawn), do: fun.()
+    for fun <- Enum.reverse(after_spawn), do: fun.()
   end
 end

@@ -17,7 +17,7 @@ end
 defmodule IO.ANSI do
   @moduledoc """
   Functionality to render ANSI escape sequences
-  (http:\\en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
+  (http://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
   in text used to control formatting, color, and other output options
   on video text terminals.
   """
@@ -72,7 +72,7 @@ defmodule IO.ANSI do
   @doc "Sets primary (default) font"
   defsequence :primary_font, 10
 
-  lc font_n inlist [1, 2, 3, 4, 5, 6, 7, 8, 9] do
+  for font_n <- [1, 2, 3, 4, 5, 6, 7, 8, 9] do
     @doc "Sets alternative font #{font_n}"
     defsequence :"font_#{font_n}", font_n + 10
   end
@@ -92,7 +92,7 @@ defmodule IO.ANSI do
   colors = [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
   colors = Enum.zip(0..(length(colors)-1), colors)
 
-  lc { code, color } inlist colors do
+  for { code, color } <- colors do
     @doc "Sets foreground color to #{color}"
     defsequence color, code + 30
 
@@ -183,6 +183,7 @@ defmodule IO.ANSI do
 
       iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes", true)
       "Hello \e[31m\e[1m\e[32myes"
+
       iex> IO.ANSI.escape_fragment("%{reset}bye", true)
       "\e[0mbye"
 

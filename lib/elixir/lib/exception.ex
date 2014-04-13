@@ -28,27 +28,33 @@ defexception CompileError, [file: nil, line: nil, description: "compile error"] 
   end
 end
 
-defexception BadFunctionError, [actual: nil] do
+defexception BadFunctionError, [term: nil] do
   def message(exception) do
-    "expected a function, got: #{inspect(exception.actual)}"
+    "expected a function, got: #{inspect(exception.term)}"
   end
 end
 
-defexception MatchError, [actual: nil] do
+defexception BadStructError, [struct: nil, term: nil] do
   def message(exception) do
-    "no match of right hand side value: #{inspect(exception.actual)}"
+    "expected a struct named #{inspect(exception.struct)}, got: #{inspect(exception.term)}"
   end
 end
 
-defexception CaseClauseError, [actual: nil] do
+defexception MatchError, [term: nil] do
   def message(exception) do
-    "no case clause matching: #{inspect(exception.actual)}"
+    "no match of right hand side value: #{inspect(exception.term)}"
   end
 end
 
-defexception TryClauseError, [actual: nil] do
+defexception CaseClauseError, [term: nil] do
   def message(exception) do
-    "no try clause matching: #{inspect(exception.actual)}"
+    "no case clause matching: #{inspect(exception.term)}"
+  end
+end
+
+defexception TryClauseError, [term: nil] do
+  def message(exception) do
+    "no try clause matching: #{inspect(exception.term)}"
   end
 end
 
@@ -105,9 +111,9 @@ defexception ErlangError, [original: nil] do
   end
 end
 
-defexception KeyError, key: nil do
+defexception KeyError, key: nil, term: nil do
   def message(exception) do
-    "key not found: #{inspect exception.key}"
+    "key #{inspect exception.key} not found in: #{inspect exception.term}"
   end
 end
 
@@ -133,20 +139,19 @@ end
 
 defmodule Exception do
   @moduledoc """
-  Convenience functions to work with and pretty print
-  exceptions and stacktraces.
+  Functions to work with and pretty print exceptions.
 
-  Notice that stacktraces in Elixir are updated on errors.
-  For example, at any given moement, `System.stacktrace`
-  will return the stacktrace for the last error that ocurred
-  in the current process.
+  Note that stacktraces in Elixir are updated on throw,
+  errors and exits. For example, at any given moment,
+  `System.stacktrace` will return the stacktrace for the
+  last throw/error/exit that ocurred in the current process.
 
-  That said, many of the functions in this module will
-  automatically calculate the stacktrace based on the caller,
-  when invoked without arguments, changing the value of
-  `System.stacktrace`. If instead you want to format the
-  stacktrace of the latest error, you should instead explicitly
-  pass the `System.stacktrace` as argument.
+  Finally note developers should not rely on the particular
+  format of the `format` functions provided by this module.
+  They may be changed in future releases in order to better
+  suit Elixir's tool chain. In other words, by using the
+  functions in this module it is guarantee you will format
+  exceptions as in the current Elixir version being used.
   """
 
   @type stacktrace :: [stacktrace_entry]
@@ -166,71 +171,75 @@ defmodule Exception do
   normalizes only `:error`, returning the untouched payload
   for others.
   """
-  def normalize(:error, exception), do: normalize(exception)
-  def normalize(_kind, other), do: other
+  def normalize(:error, exception), do: normalize_error(exception)
+  def normalize(_kind, payload),    do: payload
 
-  @doc """
-  Normalizes an exception, converting Erlang exceptions
-  to Elixir exceptions.
+  @doc false
+  def normalize(error) do
+    IO.write :stderr, "Exception.normalize/1 is deprecated, please use Exception.normalize/2 instead\n#{Exception.format_stacktrace}"
+    normalize_error(error)
+  end
 
-  Useful when interfacing Erlang code with Elixir code.
-  """
-  def normalize(exception) when is_exception(exception) do
+  defp normalize_error(exception) when is_exception(exception) do
     exception
   end
 
-  def normalize(:badarg) do
+  defp normalize_error(:badarg) do
     ArgumentError[]
   end
 
-  def normalize(:badarith) do
+  defp normalize_error(:badarith) do
     ArithmeticError[]
   end
 
-  def normalize(:system_limit) do
+  defp normalize_error(:system_limit) do
     SystemLimitError[]
   end
 
-  def normalize({ :badarity, { fun, args } }) do
+  defp normalize_error({ :badarity, { fun, args } }) do
     BadArityError[function: fun, args: args]
   end
 
-  def normalize({ :badfun, actual }) do
-    BadFunctionError[actual: actual]
+  defp normalize_error({ :badfun, term }) do
+    BadFunctionError[term: term]
   end
 
-  def normalize({ :badmatch, actual }) do
-    MatchError[actual: actual]
+  defp normalize_error({ :badstruct, struct, term }) do
+    BadStructError[struct: struct, term: term]
   end
 
-  def normalize({ :case_clause, actual }) do
-    CaseClauseError[actual: actual]
+  defp normalize_error({ :badmatch, term }) do
+    MatchError[term: term]
   end
 
-  def normalize({ :try_clause, actual }) do
-    TryClauseError[actual: actual]
+  defp normalize_error({ :case_clause, term }) do
+    CaseClauseError[term: term]
   end
 
-  def normalize(:undef) do
+  defp normalize_error({ :try_clause, term }) do
+    TryClauseError[term: term]
+  end
+
+  defp normalize_error(:undef) do
     { mod, fun, arity } = from_stacktrace(:erlang.get_stacktrace)
     UndefinedFunctionError[module: mod, function: fun, arity: arity]
   end
 
-  def normalize(:function_clause) do
+  defp normalize_error(:function_clause) do
     { mod, fun, arity } = from_stacktrace(:erlang.get_stacktrace)
     FunctionClauseError[module: mod, function: fun, arity: arity]
   end
 
-  def normalize({ :badarg, payload }) do
+  defp normalize_error({ :badarg, payload }) do
     ArgumentError[message: "argument error: #{inspect(payload)}"]
   end
 
-  def normalize(other) do
+  defp normalize_error(other) do
     ErlangError[original: other]
   end
 
   @doc """
-  Receives an stacktrace entry and formats it into a string.
+  Receives a stacktrace entry and formats it into a string.
   """
   @spec format_stacktrace_entry(stacktrace_entry) :: String.t
   def format_stacktrace_entry(entry)
@@ -250,11 +259,11 @@ defmodule Exception do
     format_location(location) <> "(file)"
   end
 
-  def format_stacktrace_entry({module, fun, arity, location}) do
+  def format_stacktrace_entry({ module, fun, arity, location }) do
     format_application(module) <> format_location(location) <> format_mfa(module, fun, arity)
   end
 
-  def format_stacktrace_entry({fun, arity, location}) do
+  def format_stacktrace_entry({ fun, arity, location }) do
     format_location(location) <> format_fa(fun, arity)
   end
 
@@ -307,8 +316,10 @@ defmodule Exception do
 
       iex> Exception.format_mfa Foo, :bar, 1
       "Foo.bar/1"
+
       iex> Exception.format_mfa Foo, :bar, []
       "Foo.bar()"
+
       iex> Exception.format_mfa nil, :bar, []
       "nil.bar()"
 
@@ -332,7 +343,7 @@ defmodule Exception do
   end
 
   defp format_arity(arity) when is_list(arity) do
-    inspected = lc x inlist arity, do: inspect(x)
+    inspected = for x <- arity, do: inspect(x)
     "(#{Enum.join(inspected, ", ")})"
   end
 

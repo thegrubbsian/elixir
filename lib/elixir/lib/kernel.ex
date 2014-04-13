@@ -46,8 +46,10 @@ defmodule Kernel do
 
       iex> abs(-3.33)
       3.33
+
       iex> abs(-3)
       3
+
   """
   @spec abs(number) :: number
   def abs(number) do
@@ -175,7 +177,7 @@ defmodule Kernel do
   ## Examples
 
       iex> :my_atom
-      ...> binary_to_existing_atom("my_atom")
+      iex> binary_to_existing_atom("my_atom")
       :my_atom
 
       iex> binary_to_existing_atom("this_atom_will_never_exist")
@@ -245,6 +247,7 @@ defmodule Kernel do
 
       iex> bit_size(<<433::16, 3::3>>)
       19
+
       iex> bit_size(<<1, 2, 3>>)
       24
 
@@ -268,9 +271,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns an integer which is the number of bytes needed to contain `bitstring`.
-  (That is, if the number of bits in `bitstring` is not divisible by 8, the resulting
-  number of bytes will be rounded up.)
+  Returns the number of bytes needed to contain `bitstring`.
+
+  That is, if the number of bits in `bitstring` is not divisible by 8,
+  the resulting number of bytes will be rounded up. This operation
+  happens in constant time.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -278,6 +283,7 @@ defmodule Kernel do
 
       iex> byte_size(<<433::16, 3::3>>)
       3
+
       iex> byte_size(<<1, 2, 3>>)
       3
 
@@ -369,7 +375,8 @@ defmodule Kernel do
 
   ## Examples
 
-      float_to_binary 7.1, [decimals: 2, compact: true] #=> "7.1"
+      iex> float_to_binary 7.1, [decimals: 2, compact: true]
+      "7.1"
 
   """
   @spec float_to_binary(float, list) :: binary
@@ -389,7 +396,8 @@ defmodule Kernel do
 
   ## Examples
 
-      float_to_list 7.1, [decimals: 2, compact: true] #=> '7.1'
+      iex> float_to_list 7.1, [decimals: 2, compact: true]
+      '7.1'
 
   """
   @spec float_to_list(float, list) :: char_list
@@ -505,13 +513,13 @@ defmodule Kernel do
   ## Examples
 
       iex> bin1 = <<1, 2, 3>>
-      ...> bin2 = <<4, 5>>
-      ...> bin3 = <<6>>
-      ...> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
+      iex> bin2 = <<4, 5>>
+      iex> bin3 = <<6>>
+      iex> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6>>
 
       iex> bin = <<1, 2, 3>>
-      ...> iolist_to_binary(bin)
+      iex> iolist_to_binary(bin)
       <<1,2,3>>
 
   """
@@ -666,6 +674,16 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns `true` if `term` is a map; otherwise returns `false`.
+
+  Allowed in guard tests. Inlined by the compiler.
+  """
+  @spec is_map(term) :: boolean
+  def is_map(term) do
+    :erlang.is_map(term)
+  end
+
+  @doc """
   Returns the length of `list`.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -674,6 +692,7 @@ defmodule Kernel do
 
       iex> length([1, 2, 3, 4, 5, 6, 7, 8, 9])
       9
+
   """
   @spec length(list) :: non_neg_integer
   def length(list) do
@@ -689,6 +708,7 @@ defmodule Kernel do
 
       iex> list_to_atom('elixir')
       :elixir
+
   """
   @spec list_to_atom(char_list) :: atom
   def list_to_atom(list) do
@@ -704,9 +724,9 @@ defmodule Kernel do
   ## Examples
 
       iex> bin1 = <<1, 2, 3>>
-      ...> bin2 = <<4, 5>>
-      ...> bin3 = <<6, 7::4>>
-      ...> list_to_bitstring([bin1, 1, [2, 3, bin2], 4|bin3])
+      iex> bin2 = <<4, 5>>
+      iex> bin3 = <<6, 7::4>>
+      iex> list_to_bitstring([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6,7::size(4)>>
 
   """
@@ -735,6 +755,7 @@ defmodule Kernel do
 
       iex> list_to_float('2.2017764e+0')
       2.2017764
+
   """
   @spec list_to_float(list) :: float
   def list_to_float(list) do
@@ -750,6 +771,7 @@ defmodule Kernel do
 
       iex> list_to_integer('123')
       123
+
   """
   @spec list_to_integer(list) :: integer
   def list_to_integer(list) do
@@ -765,6 +787,7 @@ defmodule Kernel do
 
       iex> list_to_integer('3FF', 16)
       1023
+
   """
   @spec list_to_integer(list, non_neg_integer) :: integer
   def list_to_integer(list, base) do
@@ -780,6 +803,7 @@ defmodule Kernel do
 
       iex> list_to_tuple([:share, [:elixir, 163]])
       {:share, [:elixir, 163]}
+
   """
   @spec list_to_tuple(list) :: tuple
   def list_to_tuple(list) do
@@ -802,6 +826,18 @@ defmodule Kernel do
   @spec make_ref() :: reference
   def make_ref() do
     :erlang.make_ref()
+  end
+
+  @doc """
+  Returns the size of a map.
+
+  This operation happens in constant time.
+
+  Allowed in guard tests. Inlined by the compiler.
+  """
+  @spec map_size(map) :: non_neg_integer
+  def map_size(map) do
+    :erlang.map_size(map)
   end
 
   @doc """
@@ -930,7 +966,7 @@ defmodule Kernel do
   @doc """
   Returns the size of the given argument, which must be a tuple or a binary.
 
-  Prefer using `tuple_size` or `byte_size` insted.
+  Prefer using `tuple_size/1` or `byte_size/1` instead.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -1024,7 +1060,7 @@ defmodule Kernel do
   end
 
   @doc """
-  A non-local return from a function. Check `try/2` for more information.
+  A non-local return from a function. Check `Kernel.SpecialForms.try/1` for more information.
 
   Inlined by the compiler.
   """
@@ -1061,6 +1097,8 @@ defmodule Kernel do
 
   @doc """
   Returns the size of a tuple.
+
+  This operation happens in constant time.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -1171,6 +1209,7 @@ defmodule Kernel do
 
       iex> 1 / 2
       0.5
+
       iex> 2 / 1
       2.0
 
@@ -1229,6 +1268,7 @@ defmodule Kernel do
 
       iex> true xor false
       true
+
       iex> true xor true
       false
 
@@ -1364,6 +1404,7 @@ defmodule Kernel do
 
       iex> 1 != 2
       true
+
       iex> 1 != 1.0
       false
 
@@ -1427,7 +1468,7 @@ defmodule Kernel do
   ## Example
 
       iex> tuple = { :foo, :bar, 3 }
-      ...> elem(tuple, 1)
+      iex> elem(tuple, 1)
       :bar
 
   """
@@ -1444,13 +1485,62 @@ defmodule Kernel do
   ## Example
 
       iex> tuple = { :foo, :bar, 3 }
-      ...> set_elem(tuple, 0, :baz)
+      iex> set_elem(tuple, 0, :baz)
       { :baz, :bar, 3 }
 
   """
   @spec set_elem(tuple, non_neg_integer, term) :: tuple
   def set_elem(tuple, index, value) do
     :erlang.setelement(index + 1, tuple, value)
+  end
+
+  @doc """
+  Creates and updates structs.
+
+  The struct argument may be an atom (which defines `defstruct`)
+  or a struct itself. The second argument is any Enumerable that
+  emits two-item tuples (key-value) during enumeration.
+
+  If one of the keys in the Enumerable does not exist in the struct,
+  they are automatically discarded.
+
+  This function is useful for dynamically creating and updating
+  structs.
+
+  ## Example
+
+      defmodule User do
+        defstruct name: "jose"
+      end
+
+      struct(User)
+      #=> %User{name: "jose"}
+
+      opts = [name: "eric"]
+      user = struct(User, opts)
+      #=> %User{name: "eric"}
+
+      struct(user, unknown: "value")
+      #=> %User{name: "eric"}
+
+  """
+  def struct(struct, kv \\ [])
+
+  def struct(struct, []) when is_atom(struct) do
+    apply(struct, :__struct__, [])
+  end
+
+  def struct(struct, kv) when is_atom(struct) do
+    struct(apply(struct, :__struct__, []), kv)
+  end
+
+  def struct(%{ __struct__: _ } = struct, kv) do
+    Enum.reduce(kv, struct, fn { k, v }, acc ->
+      case :maps.is_key(k, acc) do
+        true  -> :maps.put(k, v, acc)
+        false -> acc
+      end
+    end)
   end
 
   ## Implemented in Elixir
@@ -1496,6 +1586,7 @@ defmodule Kernel do
 
       iex> !Enum.empty?([])
       false
+
       iex> !List.first([])
       true
 
@@ -1532,7 +1623,7 @@ defmodule Kernel do
   long as the first part is a literal binary:
 
       iex> "foo" <> x = "foobar"
-      ...> x
+      iex> x
       "bar"
 
   """
@@ -1671,6 +1762,7 @@ defmodule Kernel do
 
       iex> is_exception((fn -> ArithmeticError.new end).())
       true
+
       iex> is_exception((fn -> 1 end).())
       false
 
@@ -1698,10 +1790,11 @@ defmodule Kernel do
 
   ## Examples
 
-      defrecord Config, sample: nil
-
-      is_record(Config.new, Config) #=> true
-      is_record(Config.new, List)   #=> false
+      iex> defrecord Config, sample: nil
+      iex> is_record(Config.new, Config)
+      true
+      iex> is_record(Config.new, List)
+      false
 
   """
   defmacro is_record(thing, kind) do
@@ -1736,24 +1829,6 @@ defmodule Kernel do
           is_tuple(result) and tuple_size(result) > 0
             and is_atom(:erlang.element(1, result))
         end
-    end
-  end
-
-  @doc false
-  defmacro is_regex(thing) do
-    IO.puts :stderr, "is_regex/1 is deprecated in favor of Regex.regex?/1\n" <>
-                     Exception.format_stacktrace(__CALLER__.stacktrace)
-    quote do
-      Kernel.is_record(unquote(thing), Regex)
-    end
-  end
-
-  @doc false
-  defmacro is_range(thing) do
-    IO.puts :stderr, "is_range/1 is deprecated in favor of Range.range?/1\n" <>
-                     Exception.format_stacktrace(__CALLER__.stacktrace)
-    quote do
-      Kernel.is_record(unquote(thing), Range)
     end
   end
 
@@ -1795,8 +1870,8 @@ defmodule Kernel do
 
   The following options are supported:
 
-  * `:records` - when false, records are not formatted by the inspect protocol,
-                 they are instead printed as just tuples, defaults to true;
+  * `:structs` - when false, structs are not formatted by the inspect protocol,
+                 they are instead printed as maps, defaults to true;
 
   * `:binaries` - when `:as_strings` all binaries will be printed as strings,
                   non-printable bytes will be escaped; when `:as_binaries` all
@@ -1826,12 +1901,6 @@ defmodule Kernel do
       iex> inspect [1, 2, 3, 4, 5], limit: 3
       "[1, 2, 3, ...]"
 
-      iex> inspect(ArgumentError[])
-      "ArgumentError[message: \"argument error\"]"
-
-      iex> inspect(ArgumentError[], records: false)
-      "{ArgumentError, :__exception__, \"argument error\"}"
-
       iex> inspect("josé" <> <<0>>)
       "<<106, 111, 115, 195, 169, 0>>"
 
@@ -1845,7 +1914,7 @@ defmodule Kernel do
   representation of an Elixir term. In such cases, the inspected result
   must start with `#`. For example, inspecting a function will return:
 
-      inspect &(&1 + &2)
+      inspect fn a, b -> a + b end
       #=> #Function<...>
 
   """
@@ -1897,6 +1966,7 @@ defmodule Kernel do
 
       iex> nil?(1)
       false
+
       iex> nil?(nil)
       true
 
@@ -1913,8 +1983,10 @@ defmodule Kernel do
 
       iex> match?(1, 1)
       true
+
       iex> match?(1, 2)
       false
+
       iex> match?({1, _}, {1, 2})
       true
 
@@ -1933,6 +2005,7 @@ defmodule Kernel do
 
       iex> match?(x, 1)
       true
+
       iex> binding([:x]) == []
       true
 
@@ -2143,13 +2216,13 @@ defmodule Kernel do
   end
 
   defp do_binding(context, vars, in_match) do
-    lc { v, c } inlist vars, c == context, v != :_@CALLER do
+    for { v, c } <- vars, c == context, v != :_@CALLER do
       { v, wrap_binding(in_match, { v, [], c }) }
     end
   end
 
   defp do_binding(list, context, vars, in_match) do
-    lc { v, c } inlist vars, c == context, :lists.member(v, list) do
+    for { v, c } <- vars, c == context, :lists.member(v, list) do
       { v, wrap_binding(in_match, { v, [], c }) }
     end
   end
@@ -2299,6 +2372,7 @@ defmodule Kernel do
 
       iex> unless(Enum.empty?([]), do: "Hello")
       nil
+
       iex> unless(Enum.empty?([1,2,3]), do: "Hello")
       "Hello"
 
@@ -2320,7 +2394,7 @@ defmodule Kernel do
   ## Examples
 
       iex> destructure([x, y, z], [1, 2, 3, 4, 5])
-      ...> {x, y, z}
+      iex> {x, y, z}
       {1, 2, 3}
 
   Notice in the example above, even though the right
@@ -2329,7 +2403,7 @@ defmodule Kernel do
   are simply assigned to nil:
 
       iex> destructure([x, y, z], [1])
-      ...> {x, y, z}
+      iex> {x, y, z}
       {1, nil, nil}
 
   The left side supports any expression you would use
@@ -2353,7 +2427,7 @@ defmodule Kernel do
               unquote(item) = nil
           end
         end
-      { :case, [{:export_all,true}|meta], args }
+      { :case, [{:export_head,true}|meta], args }
     end
   end
 
@@ -2365,10 +2439,13 @@ defmodule Kernel do
 
       iex> 0 in 1..3
       false
+
       iex> 1 in 1..3
       true
+
       iex> 2 in 1..3
       true
+
       iex> 3 in 1..3
       true
 
@@ -2447,34 +2524,51 @@ defmodule Kernel do
   end
 
   @doc """
-  `|>` is called the pipeline operator as it is useful
-  to write pipeline style expressions. This operator
-  introduces the expression on the left as the first
-  argument to the function call on the right.
+  `|>` is the pipe operator.
+
+  This operator introduces the expression on the left as
+  the first argument to the function call on the right.
 
   ## Examples
 
-      iex> [1, [2], 3] |> List.flatten |> Enum.map(&(&1 * 2))
-      [2,4,6]
+      iex> [1, [2], 3] |> List.flatten()
+      [1, 2, 3]
 
-  The expression above is simply translated to:
+  The example above is the same as calling `List.flatten([1, [2], 3])`,
+  i.e. the argument on the left side of `|>` is introduced as the first
+  argument of the function call on the right side.
 
-      Enum.map(List.flatten([1, [2], 3]), &(&1 * 2))
+  This pattern is mostly useful when there is a desire to execute
+  a bunch of operations, resembling a pipeline:
 
-  Be aware of operator precedence when using this operator.
+      iex> [1, [2], 3] |> List.flatten |> Enum.map(fn x -> x * 2 end)
+      [2, 4, 6]
+
+  The example above will pass the list to `List.flatten/1`, then get
+  the flattened list and pass to `Enum.map/2`, which will multiply
+  each entry in the list per two.
+
+  In other words, the expression above simply translates to:
+
+      Enum.map(List.flatten([1, [2], 3]), fn x -> x * 2 end)
+
+  Beware of operator precedence when using the pipe operator.
   For example, the following expression:
 
       String.graphemes "Hello" |> Enum.reverse
 
-  Is translated to:
+  Translates to:
 
       String.graphemes("Hello" |> Enum.reverse)
 
-  Which will result in an error as Enumerable protocol
-  is not defined for binaries. Adding explicit parenthesis
-  resolves the ambiguity:
+  Which will result in an error as Enumerable protocol is not defined
+  for binaries. Adding explicit parenthesis resolves the ambiguity:
 
       String.graphemes("Hello") |> Enum.reverse
+
+  Or, even better:
+
+      "Hello" |> String.graphemes |> Enum.reverse
 
   """
   defmacro left |> right do
@@ -2523,53 +2617,10 @@ defmodule Kernel do
   The usage of this protocol is to access a raw value in a
   keyword list.
 
-      sample = [a: 1, b: 2, c: 3]
-      sample[:b] #=> 2
+      iex> sample = [a: 1, b: 2, c: 3]
+      iex> sample[:b]
+      2
 
-  ## Aliases
-
-  Whenever invoked on an alias or an atom, the access protocol is
-  expanded at compilation time rather than on runtime. This feature
-  is used by records to allow a developer to match against an specific
-  part of a record:
-
-      def increment(State[counter: counter, other: 13] = state) do
-        state.counter(counter + 1)
-      end
-
-  In the example above, we use the Access protocol to match the
-  counter field in the record `State`. Considering the record
-  definition is as follows:
-
-      defrecord State, counter: 0, other: nil
-
-  The clause above is translated to:
-
-      def increment({ State, counter, 13 } = state) do
-        state.counter(counter + 1)
-      end
-
-  The same pattern can be used to create a new record:
-
-      def new_state(counter) do
-        State[counter: counter]
-      end
-
-  The example above is faster than `State.new(counter: :counter)` because
-  the record is expanded at compilation time and not at runtime. If a field
-  is not specified on creation, it will have its default value.
-
-  Finally, as in Erlang, Elixir also allows the following syntax:
-
-      new_uri = State[_: 1]
-
-  In this case **all** fields will be set to `1`. Notice that,
-  as in Erlang, in case an expression is given, it will be
-  evaluated multiple times:
-
-      new_uri = State[_: IO.puts "Hello"]
-
-  In this case, `"Hello"` will be printed twice (one per each field).
   """
   defmacro access(element, args) when is_list(args) do
     caller = __CALLER__
@@ -2596,7 +2647,7 @@ defmodule Kernel do
               end
           end
 
-        Record.access(atom, fields, args, caller)
+        Record.Deprecated.access(atom, fields, args, caller)
       false ->
         case caller.in_match? or caller.in_guard? do
           true  -> raise ArgumentError, message: "dynamic access cannot be invoked inside match and guard clauses"
@@ -2617,7 +2668,7 @@ defmodule Kernel do
   ## Examples
 
       iex> x = 1
-      ...> x in [1, 2, 3]
+      iex> x in [1, 2, 3]
       true
 
   This macro simply translates the expression above to:
@@ -2626,7 +2677,7 @@ defmodule Kernel do
 
   ## Guards
 
-  The in operator can be used on guard clauses as long as the
+  The `in` operator can be used on guard clauses as long as the
   right side is a range or a list. Elixir will then expand the
   operator to a valid guard expression. For example:
 
@@ -2779,11 +2830,11 @@ defmodule Kernel do
 
   ## Examples
 
-      defmodule Foo do
-        def bar, do: :baz
-      end
-
-      Foo.bar #=> :baz
+      iex> defmodule Foo do
+      ...>   def bar, do: :baz
+      ...> end
+      iex> Foo.bar
+      :baz
 
   ## Nesting
 
@@ -3035,6 +3086,10 @@ defmodule Kernel do
   end
 
   @doc ~S"""
+  Note: Records are mostly deprecated and being slowly removed from
+  the language. The set of supported record operations will be
+  maintained in the Record module.
+
   Exports a module with a record definition and runtime operations.
 
   Please see the `Record` module's documentation for an introduction
@@ -3084,22 +3139,6 @@ defmodule Kernel do
 
       user.update_age(fn(old) -> old + 1 end)
 
-  ## Types
-
-  Every record defines a type named `t` that can be accessed in typespecs.
-  Those types can be specified inside the record definition:
-
-      defrecord User do
-        record_type name: string, age: integer
-      end
-
-  All fields without a specified type are assumed to have type `term`.
-
-  Assuming the `User` record defined above, it could be used in typespecs
-  as follow:
-
-      @spec handle_user(User.t) :: boolean()
-
   ## Runtime introspection
 
   At runtime, developers can use `__record__` to get information
@@ -3120,42 +3159,19 @@ defmodule Kernel do
       User.__record__(:index, :unknown)
       #=> nil
 
-  ## Compile-time introspection
-
-  At compile time, one can access the following information about the record
-  from within the record module:
-
-  * `@record_fields` — a keyword list of record fields with defaults
-  * `@record_types` — a keyword list of record fields with types
-
-  For example:
-
-      defrecord Foo, bar: nil do
-        record_type bar: nil | integer
-        IO.inspect @record_fields
-        IO.inspect @record_types
-      end
-
-  Prints out:
-
-       [bar: nil]
-       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
-
-  Where the last line is a quoted representation of
-
-       [bar: nil | integer]
-
   """
-  defmacro defrecord(name, fields, do_block \\ [])
-
-  defmacro defrecord(name, fields, do_block) do
+  defmacro defrecord(name, fields, do_block \\ []) do
     case is_list(fields) and Keyword.get(fields, :do, false) do
-      false -> Record.defrecord(name, fields, do_block)
-      other -> Record.defrecord(name, Keyword.delete(fields, :do), do: other)
+      false -> Record.Deprecated.defrecord(name, fields, do_block)
+      other -> Record.Deprecated.defrecord(name, Keyword.delete(fields, :do), do: other)
     end
   end
 
   @doc ~S"""
+  Note: Records are mostly deprecated and being slowly removed from
+  the language. The set of supported record operations will be
+  maintained in the Record module.
+
   Defines a set of private macros to manipulate a record definition.
 
   This macro defines a set of macros private to the current module to
@@ -3196,23 +3212,80 @@ defmodule Kernel do
 
       state() #=> { MyServer, nil }
 
-  ## Types
-
-  `defrecordp` allows a developer to generate a type
-  automatically by simply providing a type to its fields.
-  The following definition:
-
-      defrecordp :user,
-        name: "José" :: binary,
-        age: 25 :: integer
-
-  Will generate the following type:
-
-      @typep user_t :: { :user, binary, integer }
-
   """
   defmacro defrecordp(name, tag \\ nil, fields) do
-    Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
+    Record.Deprecated.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
+  end
+
+  @doc """
+  Defines a struct for the current module.
+
+  A struct is a tagged map that allows developers to provide
+  default values for keys, tags to be used in polymorphic
+  dispatches and compile time assertions.
+
+  To define a struct, a developer needs to only define
+  a function named `__struct__/0` that returns a map with the
+  structs field. This macro is a convenience for defining such
+  function, with the addition of a type `t`.
+
+  For more information about structs, please check
+  `Kernel.SpecialForms.%/2`.
+
+  ## Examples
+
+      defmodule MyRange do
+        defstruct first: nil, last: nil
+      end
+
+  Notice `defstruct` requires a keyword list of fields and values
+  at expansion time. In other words, `defstruct` works with quoted
+  expressions. In other words, a struct defined like:
+
+      defmodule MyRange do
+        defstruct first: nil, last: 1 + 1
+      end
+
+  Will execute `1 + 1` every time the struct is built. This also
+  implies the following leads to an error:
+
+      defmodule MyRange do
+        my_fields = [first: nil, last: nil]
+        defstruct my_fields
+      end
+
+  ## Types
+
+  `defstruct` automatically generates a type `t` unless one exists.
+  The following definition:
+
+      defmodule User do
+        defstruct name: "José" :: String.t,
+                  age: 25 :: integer
+      end
+
+  Generates a type as follows:
+
+      @type t :: %User{name: String.t, age: integer}
+
+  In case a struct does not declare a field type, it defaults to `term`.
+  """
+  defmacro defstruct(kv) do
+    kv = Macro.escape(kv, unquote: true)
+    quote bind_quoted: [kv: kv] do
+      # Expand possible macros that return KVs.
+      kv = Macro.expand(kv, __ENV__)
+      { fields, types } = Record.Backend.split_fields_and_types(:defstruct, kv)
+
+      if :code.ensure_loaded(Kernel.Typespec) == { :module, Kernel.Typespec } and
+         not Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
+        @type t :: %{ unquote_splicing(types), __struct__: __MODULE__ }
+      end
+
+      def __struct__() do
+        %{ unquote_splicing(fields), __struct__: __MODULE__ }
+      end
+    end
   end
 
   @doc ~S"""
@@ -3279,7 +3352,7 @@ defmodule Kernel do
     end)
 
     fields = quote do: [__exception__: :__exception__] ++ unquote(fields)
-    record = Record.defrecord(name, fields, do_block)
+    record = Record.Deprecated.defrecord(name, fields, do_block)
 
     quote do
       { :module, name, _, _ } = unquote(record)
@@ -3580,7 +3653,7 @@ defmodule Kernel do
 
       append_first = Keyword.get(opts, :append_first, false)
 
-      lc fun inlist List.wrap(funs) do
+      for fun <- List.wrap(funs) do
         { name, args } =
           case Macro.decompose_call(fun) do
             { _, _ } = pair -> pair
@@ -3612,6 +3685,7 @@ defmodule Kernel do
 
       iex> ~S(foo)
       "foo"
+
       iex> ~S(f\#{o}o)
       "f\\\#{o}o"
 
@@ -3628,6 +3702,7 @@ defmodule Kernel do
 
       iex> ~s(foo)
       "foo"
+
       iex> ~s(f\#{:o}o)
       "foo"
 
@@ -3644,6 +3719,7 @@ defmodule Kernel do
 
       iex> ~C(foo)
       'foo'
+
       iex> ~C(f\#{o}o)
       'f\\\#{o}o'
 
@@ -3660,6 +3736,7 @@ defmodule Kernel do
 
       iex> ~c(foo)
       'foo'
+
       iex> ~c(f\#{:o}o)
       'foo'
 
@@ -3724,8 +3801,10 @@ defmodule Kernel do
 
       iex> ~w(foo \#{:bar} baz)
       ["foo", "bar", "baz"]
+
       iex> ~w(--source test/enum_test.exs)
       ["--source", "test/enum_test.exs"]
+
       iex> ~w(foo bar baz)a
       [:foo, :bar, :baz]
 
@@ -3774,14 +3853,14 @@ defmodule Kernel do
       true ->
         case mod do
           ?s -> String.split(string)
-          ?a -> lc p inlist String.split(string), do: binary_to_atom(p)
-          ?c -> lc p inlist String.split(string), do: String.to_char_list!(p)
+          ?a -> for p <- String.split(string), do: binary_to_atom(p)
+          ?c -> for p <- String.split(string), do: String.to_char_list!(p)
         end
       false ->
         case mod do
           ?s -> quote do: String.split(unquote(string))
-          ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
-          ?c -> quote do: lc(p inlist String.split(unquote(string)), do: String.to_char_list!(p))
+          ?a -> quote do: for(p <- String.split(unquote(string)), do: binary_to_atom(p))
+          ?c -> quote do: for(p <- String.split(unquote(string)), do: String.to_char_list!(p))
         end
     end
   end

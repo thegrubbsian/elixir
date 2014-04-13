@@ -32,49 +32,61 @@ defmodule Mix.Tasks.Local.Install do
   def run(argv) do
     { opts, argv, _ } = OptionParser.parse(argv, switches: [force: :boolean])
 
-    unless path = List.first(argv) do
+    if url = List.first(argv) do
+      URI.Info[path: path] = URI.parse(url)
+
+      case Path.extname(path) do
+        ".ez" -> install_archive(url, opts)
+        _     -> raise Mix.Error, message: "mix local.install doesn't know how to install #{path}"
+      end
+    else
       path = Mix.Archive.name(Mix.project[:app], Mix.project[:version])
 
-      unless File.exists?(path) do
+      if File.exists?(path) do
+        install_archive(path, opts)
+      else
         raise Mix.Error, message: "Expected PATH to be given, please use `mix local.install PATH`"
       end
-    end
-
-    case Path.extname(path) do
-      ".ez" -> install_archive(path, opts)
-      _     -> raise Mix.Error, message: "mix local.install doesn't know how to install #{path}"
     end
   end
 
   defp install_archive(src, opts) do
-    previous = previous_version_filename(src)
+    previous = previous_versions(src)
     if opts[:force] || should_install?(src, previous) do
-      remove_previous_version(previous)
+      remove_previous_versions(previous)
       dest = Mix.Local.archives_path
       File.mkdir_p! dest
-      create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path!(src)
+      create_file Path.join(dest, basename(src)), Mix.Utils.read_path!(src)
     end
   end
 
-  defp should_install?(src, _previous_version_filename=nil) do
+  defp basename(path) do
+    URI.Info[path: path] = URI.parse(path)
+    Path.basename(path)
+  end
+
+  defp should_install?(src, []) do
     Mix.shell.yes?("Are you sure you want to install archive #{src}?")
   end
 
-  defp should_install?(_src, previous_version_filename) do
-    Mix.shell.yes?("Found existing archive #{Path.basename(previous_version_filename)}.\n" <>
-          "Do you want to override this archive?")
+  defp should_install?(_src, previous_files) do
+    files = Enum.map_join(previous_files, ", ", &Path.basename/1)
+
+    Mix.shell.yes?("Found existing archives: #{files}.\n" <>
+                   "Do you want to remove them?")
   end
 
-  defp previous_version_filename(src) do
+  defp previous_versions(src) do
     app = Mix.Archive.dir(src) |> String.split("-") |> List.first
-    Path.join(Mix.Local.archives_path, app <> "-*.ez") |> Path.wildcard |> List.first
+    if app do
+      Mix.Local.archive_files(app)
+    else
+      []
+    end
   end
 
-  defp remove_previous_version(_previous=nil) do
-    true
-  end
-
-  defp remove_previous_version(previous) do
-    File.rm!(previous)
-  end
+  defp remove_previous_versions([]),
+    do: :ok
+  defp remove_previous_versions(previous),
+    do: Enum.each(previous, &File.rm!/1)
 end

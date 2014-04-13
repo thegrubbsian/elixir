@@ -13,10 +13,13 @@ defmodule Float do
 
       iex> Float.parse("34")
       {34.0,""}
+
       iex> Float.parse("34.25")
       {34.25,""}
+
       iex> Float.parse("56.5xyz")
       {56.5,"xyz"}
+
       iex> Float.parse("pi")
       :error
 
@@ -82,7 +85,7 @@ defmodule Float do
     # iex(1)> 0.0001 * 75
     # 0.007500000000000001
     # Due to IEEE 754 floating point standard
-    # http:\\docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
+    # http://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
 
     final_decimal_places = decimal - exponential
     if final_decimal_places > 0 do
@@ -94,14 +97,16 @@ defmodule Float do
   end
 
   @doc """
-  Round a float to the largest integer less than or equal to `num`
+  Rounds a float to the largest integer less than or equal to `num`.
 
   ## Examples
 
       iex> Float.floor(34)
       34
+
       iex> Float.floor(34.25)
       34
+
       iex> Float.floor(-56.5)
       -57
 
@@ -117,14 +122,16 @@ defmodule Float do
   end
 
   @doc """
-  Round a float to the largest integer greater than or equal to `num`
+  Rounds a float to the largest integer greater than or equal to `num`.
 
   ## Examples
 
       iex> Float.ceil(34)
       34
+
       iex> Float.ceil(34.25)
       35
+
       iex> Float.ceil(-56.5)
       -56
 
@@ -147,16 +154,19 @@ defmodule Float do
 
       iex> Float.round(5.5674, 3)
       5.567
+
       iex> Float.round(5.5675, 3)
       5.568
+
       iex> Float.round(-5.5674, 3)
       -5.567
+
       iex> Float.round(-5.5675, 3)
       -5.568
+
   """
   @spec round(float, integer) :: float
   def round(number, precision) when is_float(number) and is_integer(precision) and precision in 0..15 do
     Kernel.round(number * :math.pow(10, precision)) / :math.pow(10, precision)
   end
-
 end

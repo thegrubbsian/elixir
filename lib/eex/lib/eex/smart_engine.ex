@@ -15,6 +15,10 @@ defmodule EEx.TransformerEngine do
     quote do
       @behaviour EEx.Engine
 
+      def handle_body(body) do
+        EEx.Engine.handle_body(body)
+      end
+
       def handle_text(buffer, text) do
         EEx.Engine.handle_text(buffer, text)
       end
@@ -32,14 +36,14 @@ defmodule EEx.TransformerEngine do
       end
 
       defp transform(list) when is_list(list) do
-        lc i inlist list, do: transform(i)
+        for i <- list, do: transform(i)
       end
 
       defp transform(other) do
         other
       end
 
-      defoverridable [transform: 1, handle_expr: 3, handle_text: 2]
+      defoverridable [transform: 1, handle_body: 1, handle_expr: 3, handle_text: 2]
     end
   end
 end
@@ -59,8 +63,8 @@ defmodule EEx.AssignsEngine do
         use EEx.AssignsEngine
       end
 
-      EEx.eval_string("<%= @foo %>", assigns: [foo: 1])
-      #=> 1
+      iex> EEx.eval_string("<%= @foo %>", assigns: [foo: 1])
+      "1"
 
   In the example above, we can access the value `foo` under
   the binding `assigns` using `@foo`. This is useful when
